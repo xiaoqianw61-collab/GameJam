@@ -23,7 +23,7 @@ public class Target : MonoBehaviour
         pooped = true;
 
         int points = GetScore();
-        GameManager.Instance.OnTargetHit(points);
+        // GameManager.Instance.OnTargetHit(points);
 
         // 视觉反馈
         if (sr != null)

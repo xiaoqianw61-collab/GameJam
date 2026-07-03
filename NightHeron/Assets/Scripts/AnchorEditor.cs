@@ -508,10 +508,10 @@ public class AnchorEditor : MonoBehaviour
     {
         string text = $"左键空白：放锚点 | 左键锚点：选中/激活手柄 | 拖蓝点：调曲线 | 退格：撤销 | 锚点：{anchors.Count}/{maxAnchors}";
         var gm = FindAnyObjectByType<GameManager>();
-        if (gm != null && gm.instructionText != null)
-        {
-            gm.instructionText.text = text;
-        }
+        // if (gm != null && gm.instructionText != null)
+        // {
+            // gm.instructionText.text = text;
+        // }
 
         if (anchorCountText != null)
         {

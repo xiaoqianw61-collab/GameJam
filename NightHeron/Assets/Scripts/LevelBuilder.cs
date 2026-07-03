@@ -146,8 +146,8 @@ public class LevelBuilder : MonoBehaviour
             CreateMotorcycle(pos, parent);
         }
 
-        var gm = FindAnyObjectByType<GameManager>();
-        if (gm != null) gm.SetTotalTargets(personCount + carCount + obstacleCount);
+        // var gm = FindAnyObjectByType<GameManager>();
+        // if (gm != null) gm.SetTotalTargets(personCount + carCount + obstacleCount);
     }
 
     Vector2 GetRandomPos(List<Vector2> occupied, float xMin, float xMax, float yMin, float yMax)
@@ -313,11 +313,11 @@ public class LevelBuilder : MonoBehaviour
         var gm = FindAnyObjectByType<GameManager>();
         if (gm != null)
         {
-            gm.scoreText = scoreText.GetComponent<Text>();
-            gm.comboText = comboText.GetComponent<Text>();
-            gm.instructionText = instrText.GetComponent<Text>();
-            gm.gameOverPanel = panel;
-            gm.finalScoreText = finalText.GetComponent<Text>();
+            // gm.scoreText = scoreText.GetComponent<Text>();
+            // gm.comboText = comboText.GetComponent<Text>();
+            // gm.instructionText = instrText.GetComponent<Text>();
+            // gm.gameOverPanel = panel;
+            // gm.finalScoreText = finalText.GetComponent<Text>();
         }
 
         // 把锚点数量文本传给 AnchorEditor

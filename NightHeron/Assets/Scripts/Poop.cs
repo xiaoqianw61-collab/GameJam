@@ -35,7 +35,7 @@ public class Poop : MonoBehaviour
 
         if (collision.collider.CompareTag("Ground"))
         {
-            GameManager.Instance.OnTargetMiss();
+            // GameManager.Instance.OnTargetMiss();
             alreadyHit = true;
             Destroy(gameObject);
         }

@@ -6,14 +6,14 @@ using UnityEngine;
 /// </summary>
 public class RuntimeBootstrap : MonoBehaviour
 {
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    static void AutoBuildLevel()
-    {
-        if (FindAnyObjectByType<LevelBuilder>() == null)
-        {
-            var go = new GameObject("LevelBuilder");
-            go.AddComponent<LevelBuilder>();
-        }
-    }
+    // [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    // static void AutoBuildLevel()
+    // {
+    //     if (FindAnyObjectByType<LevelBuilder>() == null)
+    //     {
+    //         var go = new GameObject("LevelBuilder");
+    //         go.AddComponent<LevelBuilder>();
+    //     }
+    // }
 }
 // trigger-recompile-001
