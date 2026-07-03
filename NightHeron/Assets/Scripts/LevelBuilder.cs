@@ -12,6 +12,9 @@ using System.IO;
 /// </summary>
 public class LevelBuilder : MonoBehaviour
 {
+    [Header("关卡配置")]
+    public int levelIndex = 1;
+
     [Header("地图")]
     public float mapWidth = 28f;
     public float mapHeight = 14f;
@@ -20,10 +23,6 @@ public class LevelBuilder : MonoBehaviour
     public int obstacleCount = 5;
     public int personCount = 8;
     public int carCount = 4;
-
-    [Header("兼容编辑器工具")]
-    public int buildingCount = 5;
-    public int signCount = 3;
 
     [Header("起点/终点")]
     public Vector3 startPos = new Vector3(-9f, 4f, 0f);
@@ -35,9 +34,61 @@ public class LevelBuilder : MonoBehaviour
 
     void Awake()
     {
-        // 由 GameFlowManager 或外部调用 GenerateLevel()
-    }
+        // 编辑器模式不执行
+        if (!Application.isPlaying) return;
 
+        // 菜单场景（NightHeronScene / MenuScene）：不生成关卡内容，由 GameManager 控制菜单流程
+        var sceneName = gameObject.scene.name;
+        if (sceneName == "NightHeronScene" || sceneName == "MenuScene")
+        {
+            Debug.Log($"[LevelBuilder] 菜单场景 {sceneName}，跳过生成。");
+            return;
+        }
+
+        // 关卡场景：判断是否已烘焙
+        bool alreadyBaked = Camera.main != null && GameObject.Find("Ground") != null;
+        if (alreadyBaked)
+        {
+            // 必须用 Include 查找，因为 PlayerBird 在烘焙场景中 enabled=false
+            var birds = FindObjectsByType<PlayerBird>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            playerBird = birds.Length > 0 ? birds[0] : null;
+            var editors = FindObjectsByType<AnchorEditor>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            editor = editors.Length > 0 ? editors[0] : null;
+
+            // 强制重新绑定按钮监听（烘焙时的序列化回调可能解析失败）
+            var confirmBtn = GameObject.Find("ConfirmButton");
+            if (confirmBtn != null)
+            {
+                var btn = confirmBtn.GetComponent<Button>();
+                if (btn != null)
+                {
+                    btn.onClick.RemoveAllListeners();
+                    btn.onClick.AddListener(StartGame);
+                }
+            }
+
+            // 恢复 AnchorEditor 的 UI 引用（烘焙时也会丢失）
+            if (editor != null)
+            {
+                var anchorCountGO = GameObject.Find("AnchorCount");
+                if (anchorCountGO != null) editor.anchorCountText = anchorCountGO.GetComponent<Text>();
+
+                var stockImages = new List<Image>();
+                for (int i = 0; i < 4; i++)
+                {
+                    var sq = GameObject.Find($"StockSquare_{i}");
+                    if (sq != null) stockImages.Add(sq.GetComponent<Image>());
+                }
+                editor.anchorStockImages = stockImages;
+            }
+
+            Debug.Log($"[LevelBuilder] 场景 {sceneName} 已烘焙，playerBird={playerBird != null}, editor={editor != null}, button={confirmBtn != null}");
+            return;
+        }
+
+        Debug.Log($"[LevelBuilder] 场景 {sceneName} 未烘焙，开始生成关卡内容。");
+        GenerateLevel();
+    }
     public void GenerateLevel()
     {
         CreateCamera();
@@ -102,10 +153,8 @@ public class LevelBuilder : MonoBehaviour
     {
         var parent = new GameObject("Obstacles").transform;
 
-        Vector2[] positions = {
-            new(-3f, 3f), new(3f, 6f), new(8f, 2.5f),
-            new(14f, 5f), new(17f, 2f)
-        };
+        // 每关不同的障碍物布局
+        Vector2[] positions = GetObstaclePositions(levelIndex);
 
         for (int i = 0; i < Mathf.Min(obstacleCount, positions.Length); i++)
         {
@@ -116,7 +165,7 @@ public class LevelBuilder : MonoBehaviour
 
             var srr = go.AddComponent<SpriteRenderer>();
             srr.sprite = CreateRectSprite(32, 32, Color.white);
-            srr.color = new Color(0.7f, 0.7f, 0.7f); // 浅灰方块
+            srr.color = new Color(0.7f, 0.7f, 0.7f);
             srr.sortingOrder = 1;
 
             float w = Random.Range(1.2f, 2.5f);
@@ -128,6 +177,21 @@ public class LevelBuilder : MonoBehaviour
 
             var target = go.AddComponent<Target>();
             target.type = Target.TargetType.Building;
+        }
+    }
+
+    /// <summary>每关不同的障碍物位置</summary>
+    Vector2[] GetObstaclePositions(int level)
+    {
+        switch (level)
+        {
+            case 1: return new Vector2[] { new(-3f, 3f), new(3f, 6f), new(8f, 2.5f) };
+            case 2: return new Vector2[] { new(-2f, 5f), new(5f, 1.5f), new(10f, 4f), new(14f, 6f) };
+            case 3: return new Vector2[] { new(-4f, 2f), new(1f, 3.5f), new(7f, 6f), new(13f, 2f), new(17f, 5f) };
+            case 4: return new Vector2[] { new(-5f, 4f), new(0f, 1f), new(6f, 3f), new(12f, 5.5f), new(18f, 1.5f) };
+            case 5: return new Vector2[] { new(-3f, 6f), new(2f, 2f), new(8f, 5f), new(15f, 3.5f), new(19f, 6.5f) };
+            case 6: return new Vector2[] { new(-4f, 1.5f), new(3f, 5f), new(9f, 1f), new(14f, 4f), new(20f, 2.5f) };
+            default: return new Vector2[] { new(-3f, 3f), new(3f, 6f), new(8f, 2.5f), new(14f, 5f), new(17f, 2f) };
         }
     }
 
@@ -270,12 +334,13 @@ public class LevelBuilder : MonoBehaviour
     void CreateUI()
     {
         // 必须有 EventSystem，否则 Button 点击无效
-        if (FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
-        {
-            var esGO = new GameObject("EventSystem");
-            esGO.AddComponent<UnityEngine.EventSystems.EventSystem>();
-            esGO.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
-        }
+        // EventSystem 由 GameManager 跨场景持久化创建，LevelBuilder 不再创建
+        // if (FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
+        // {
+        //     var esGO = new GameObject("EventSystem");
+        //     esGO.AddComponent<UnityEngine.EventSystems.EventSystem>();
+        //     esGO.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+        // }
 
         var canvasGO = new GameObject("Canvas");
         var canvas = canvasGO.AddComponent<Canvas>();
@@ -420,7 +485,10 @@ public class LevelBuilder : MonoBehaviour
 
         // 找到玩家鸟，设置路径并启动
         if (playerBird == null)
-            playerBird = FindAnyObjectByType<PlayerBird>();
+        {
+            var birds = FindObjectsByType<PlayerBird>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            playerBird = birds.Length > 0 ? birds[0] : null;
+        }
 
         if (playerBird != null && editor != null)
         {

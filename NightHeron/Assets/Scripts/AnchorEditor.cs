@@ -4,11 +4,11 @@ using System.Collections.Generic;
 
 /// <summary>
 /// 锚点编辑器 - 设计模式
-/// 左键空白：放置锚点
+/// 左键空白：放置锚点（需向 GameManager 申请库存）
 /// 左键锚点：选中并拖拽移动
 /// 左键蓝色手柄：拖拽调整曲线（镜像对称）
-/// 退格：撤销最后一个锚点
-/// 最多4个锚点，每段使用独立的 Cubic Bezier 曲线
+/// 退格：撤销最后一个锚点（归还库存给 GameManager）
+/// 每段使用独立的 Cubic Bezier 曲线
 /// </summary>
 public class AnchorEditor : MonoBehaviour
 {
@@ -24,7 +24,6 @@ public class AnchorEditor : MonoBehaviour
     }
 
     [Header("锚点设置")]
-    public int maxAnchors = 4;
     public float anchorRadius = 0.35f;
     public Color anchorColor = new Color(1f, 0.85f, 0.2f);
     public Color selectedAnchorColor = new Color(1f, 0.55f, 0.2f);
@@ -146,8 +145,8 @@ public class AnchorEditor : MonoBehaviour
                 return;
             }
 
-            // 优先级3：空白区域
-            if (anchors.Count < maxAnchors)
+            // 优先级3：空白区域（向 GameManager 申请锚点库存）
+            if (GameManager.Instance != null && GameManager.Instance.CanPlaceAnchor())
             {
                 AddAnchor(worldPos);
             }
@@ -238,12 +237,12 @@ public class AnchorEditor : MonoBehaviour
     }
 
     /// <summary>
-    /// 更新底部锚点库存方块：剩余几个显示几个黑色方块，用掉就消失
+    /// 更新底部锚点库存方块（通过 GameManager 获取剩余数量）
     /// </summary>
     void UpdateAnchorStockUI()
     {
-        if (anchorStockImages == null) return;
-        int remaining = maxAnchors - anchors.Count;
+        if (anchorStockImages == null || GameManager.Instance == null) return;
+        int remaining = GameManager.Instance.RemainingAnchors;
         for (int i = 0; i < anchorStockImages.Count; i++)
         {
             bool visible = i < remaining;
@@ -261,16 +260,19 @@ public class AnchorEditor : MonoBehaviour
 
     void AddAnchor(Vector3 pos)
     {
+        // 向 GameManager 消耗一个锚点库存
+        if (GameManager.Instance != null && !GameManager.Instance.TryUseAnchor())
+            return;
+
         var anchor = new AnchorData();
         anchor.position = pos;
 
-        // 默认为零长度手柄 = 直线，拖拽手柄后才变为曲线
         anchor.handleOut = Vector3.zero;
         anchor.handleIn = Vector3.zero;
 
         anchors.Add(anchor);
         CreateAnchorGizmo(pos, anchors.Count - 1);
-        SelectAnchor(anchors.Count - 1); // 自动选中，显示手柄
+        SelectAnchor(anchors.Count - 1);
         UpdatePathLine();
         UpdateInstructionText();
         UpdateAnchorStockUI();
@@ -284,6 +286,11 @@ public class AnchorEditor : MonoBehaviour
         if (idx < anchorGizmos.Count) anchorGizmos.RemoveAt(idx);
         if (idx < anchorRenderers.Count) anchorRenderers.RemoveAt(idx);
         anchors.RemoveAt(idx);
+
+        // 归还锚点库存给 GameManager
+        if (GameManager.Instance != null)
+            GameManager.Instance.ReturnAnchor();
+
         UpdatePathLine();
         UpdateInstructionText();
         UpdateAnchorStockUI();
@@ -520,9 +527,9 @@ public class AnchorEditor : MonoBehaviour
 
     void UpdateInstructionText()
     {
-        if (anchorCountText != null)
+        if (anchorCountText != null && GameManager.Instance != null)
         {
-            anchorCountText.text = $"锚点: {anchors.Count}/{maxAnchors} (选中标橙后拖蓝色手柄调曲线)";
+            anchorCountText.text = $"锚点: {GameManager.Instance.UsedAnchors}/{GameManager.Instance.maxAnchors} (选中标橙后拖蓝色手柄调曲线)";
         }
     }
 
