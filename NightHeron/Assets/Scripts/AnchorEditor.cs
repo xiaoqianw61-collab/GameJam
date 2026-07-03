@@ -452,14 +452,14 @@ public class AnchorEditor : MonoBehaviour
 
             if (i == 0)
             {
-                // 起点 → 第一个锚点
+                // 起点 → 第一个锚点（无锚点时直接连到终点）
                 c0 = p0; // 起点无手柄
-                c1 = anchors[0].HandleInWorld;
+                c1 = anchors.Count > 0 ? anchors[0].HandleInWorld : p1;
             }
             else if (i == segCount - 1)
             {
                 // 最后一个锚点 → 终点
-                c0 = anchors[i - 1].HandleOutWorld;
+                c0 = anchors.Count > 0 ? anchors[anchors.Count - 1].HandleOutWorld : p0;
                 c1 = p1; // 终点无手柄
             }
             else
