@@ -47,9 +47,15 @@ public class AnchorEditor : MonoBehaviour
     public Text anchorCountText;
     public List<Image> anchorStockImages;
 
+    /// <summary>是否处于编辑模式（false = 游戏开始，锁定编辑）</summary>
+    public bool isEditing = true;
+
     private List<AnchorData> anchors = new List<AnchorData>();
     private List<GameObject> anchorGizmos = new List<GameObject>();
     private List<SpriteRenderer> anchorRenderers = new List<SpriteRenderer>();
+
+    /// <summary>最新生成的曲线路径点（供 PlayerBird 飞行用）</summary>
+    private List<Vector3> cachedCurvePath = new List<Vector3>();
 
     private LineRenderer pathLine;
     private Camera mainCam;
@@ -85,8 +91,15 @@ public class AnchorEditor : MonoBehaviour
         HandleInput();
     }
 
+    /// <summary>获取当前贝塞尔曲线路径点列表</summary>
+    public List<Vector3> GetCurvePath()
+    {
+        return new List<Vector3>(cachedCurvePath);
+    }
+
     void HandleInput()
     {
+        if (!isEditing) return;
         Vector3 worldPos = GetMouseWorldPos();
 
         if (Input.GetMouseButtonDown(0))
@@ -475,6 +488,7 @@ public class AnchorEditor : MonoBehaviour
 
         pathLine.positionCount = curvePoints.Count;
         pathLine.SetPositions(curvePoints.ToArray());
+        cachedCurvePath = curvePoints;
     }
 
     /// <summary>
@@ -506,13 +520,6 @@ public class AnchorEditor : MonoBehaviour
 
     void UpdateInstructionText()
     {
-        string text = $"左键空白：放锚点 | 左键锚点：选中/激活手柄 | 拖蓝点：调曲线 | 退格：撤销 | 锚点：{anchors.Count}/{maxAnchors}";
-        var gm = FindAnyObjectByType<GameManager>();
-        if (gm != null && gm.instructionText != null)
-        {
-            gm.instructionText.text = text;
-        }
-
         if (anchorCountText != null)
         {
             anchorCountText.text = $"锚点: {anchors.Count}/{maxAnchors} (选中标橙后拖蓝色手柄调曲线)";

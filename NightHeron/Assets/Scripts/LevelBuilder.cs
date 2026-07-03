@@ -29,12 +29,16 @@ public class LevelBuilder : MonoBehaviour
     public Vector3 startPos = new Vector3(-9f, 4f, 0f);
     public Vector3 endPos = new Vector3(19f, 4f, 0f);
 
+    private AnchorEditor editor;
+    private PlayerBird playerBird;
+    private bool gameStarted = false;
+
     void Awake()
     {
-        GenerateLevel();
+        // 由 GameFlowManager 或外部调用 GenerateLevel()
     }
 
-    void GenerateLevel()
+    public void GenerateLevel()
     {
         CreateCamera();
         CreateGround();
@@ -43,7 +47,6 @@ public class LevelBuilder : MonoBehaviour
         CreateStartEndMarkers();
         CreatePlayer();
         CreateAnchorEditor();
-        CreateGameManager();
         CreateUI();
     }
 
@@ -146,8 +149,6 @@ public class LevelBuilder : MonoBehaviour
             CreateMotorcycle(pos, parent);
         }
 
-        var gm = FindAnyObjectByType<GameManager>();
-        if (gm != null) gm.SetTotalTargets(personCount + carCount + obstacleCount);
     }
 
     Vector2 GetRandomPos(List<Vector2> occupied, float xMin, float xMax, float yMin, float yMax)
@@ -250,39 +251,37 @@ public class LevelBuilder : MonoBehaviour
         playerBird.poopPoint = poopPoint.transform;
         playerBird.flySpeed = 6f;
         playerBird.poopSpeed = 12f;
+        playerBird.autoPoop = false; // 编辑阶段不自动拉
         playerBird.enabled = false; // 设计阶段先不动
+        this.playerBird = playerBird;
     }
 
     // ─── 锚点编辑器 ───
     void CreateAnchorEditor()
     {
         var go = new GameObject("AnchorEditor");
-        var editor = go.AddComponent<AnchorEditor>();
+        editor = go.AddComponent<AnchorEditor>();
         editor.startPos = startPos;
         editor.endPos = endPos;
-    }
-
-    // ─── GameManager ───
-    void CreateGameManager()
-    {
-        var go = new GameObject("GameManager");
-        go.AddComponent<GameManager>();
+        editor.isEditing = true;
     }
 
     // ─── UI ───
     void CreateUI()
     {
+        // 必须有 EventSystem，否则 Button 点击无效
+        if (FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
+        {
+            var esGO = new GameObject("EventSystem");
+            esGO.AddComponent<UnityEngine.EventSystems.EventSystem>();
+            esGO.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+        }
+
         var canvasGO = new GameObject("Canvas");
         var canvas = canvasGO.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvasGO.AddComponent<CanvasScaler>();
         canvasGO.AddComponent<GraphicRaycaster>();
-
-        var scoreText = CreateUIText("Score", "Score: 0",
-            new Vector2(16, -12), 24, TextAnchor.UpperLeft, canvasGO.transform);
-
-        var comboText = CreateUIText("Combo", "",
-            new Vector2(16, -44), 28, TextAnchor.UpperLeft, canvasGO.transform);
 
         var instrText = CreateUIText("Instruction",
             "左键空白：放锚点 | 左键锚点：选中/激活手柄 | 拖蓝点：调曲线 | 退格：撤销",
@@ -299,33 +298,15 @@ public class LevelBuilder : MonoBehaviour
         anchorRt.anchorMax = new Vector2(0.5f, 1f);
         anchorRt.sizeDelta = new Vector2(500, 40);
 
-        var panel = new GameObject("GameOverPanel");
-        panel.transform.SetParent(canvasGO.transform);
-        var panelRt = panel.AddComponent<RectTransform>();
-        panelRt.anchorMin = Vector2.zero; panelRt.anchorMax = Vector2.one;
-        panelRt.offsetMin = Vector2.zero; panelRt.offsetMax = Vector2.zero;
-        panel.AddComponent<Image>().color = new Color(0, 0, 0, 0.7f);
-        panel.SetActive(false);
-
-        var finalText = CreateUIText("FinalText", "",
-            Vector2.zero, 36, TextAnchor.MiddleCenter, panel.transform);
-
-        var gm = FindAnyObjectByType<GameManager>();
-        if (gm != null)
-        {
-            gm.scoreText = scoreText.GetComponent<Text>();
-            gm.comboText = comboText.GetComponent<Text>();
-            gm.instructionText = instrText.GetComponent<Text>();
-            gm.gameOverPanel = panel;
-            gm.finalScoreText = finalText.GetComponent<Text>();
-        }
-
         // 把锚点数量文本传给 AnchorEditor
         var editor = FindAnyObjectByType<AnchorEditor>();
         if (editor != null) editor.anchorCountText = anchorText.GetComponent<Text>();
 
         // ─── 锚点库存面板（底部）───
         CreateAnchorStockUI(canvasGO.transform, editor);
+
+        // ─── 确认按钮（右侧中间）───
+        CreateConfirmButton(canvasGO.transform);
     }
 
     void CreateAnchorStockUI(Transform canvas, AnchorEditor editor)
@@ -366,6 +347,89 @@ public class LevelBuilder : MonoBehaviour
         }
 
         if (editor != null) editor.anchorStockImages = stockImages;
+    }
+
+    /// <summary>
+    /// 确认按钮：锁定编辑，鸟开始沿玩家画的路线飞行，并持续拉屎
+    /// </summary>
+    void CreateConfirmButton(Transform canvas)
+    {
+        var btnGO = new GameObject("ConfirmButton");
+        btnGO.transform.SetParent(canvas);
+
+        var btnRt = btnGO.AddComponent<RectTransform>();
+        btnRt.anchorMin = new Vector2(1f, 0f);
+        btnRt.anchorMax = new Vector2(1f, 0f);
+        btnRt.anchoredPosition = new Vector2(-80, 40);
+        btnRt.sizeDelta = new Vector2(120, 50);
+
+        var btnImg = btnGO.AddComponent<Image>();
+        btnImg.color = new Color(0.2f, 0.7f, 0.3f);
+
+        var btn = btnGO.AddComponent<Button>();
+
+        // 按钮文字
+        var btnText = CreateUIText("ConfirmBtnText", "开始拉屎！",
+            Vector2.zero, 20, TextAnchor.MiddleCenter, btnGO.transform);
+        var btnTextRt = btnText.GetComponent<RectTransform>();
+        btnTextRt.anchorMin = Vector2.zero;
+        btnTextRt.anchorMax = Vector2.one;
+        btnTextRt.offsetMin = Vector2.zero;
+        btnTextRt.offsetMax = Vector2.zero;
+        btnTextRt.anchoredPosition = Vector2.zero;
+
+        btn.onClick.AddListener(StartGame);
+    }
+
+    /// <summary>
+    /// 开始游戏：锁定锚点编辑，鸟开始飞行并自动拉屎
+    /// </summary>
+    void StartGame()
+    {
+        if (gameStarted) return;
+        gameStarted = true;
+
+        // 锁定编辑
+        if (editor != null)
+            editor.isEditing = false;
+
+        // 隐藏确认按钮
+        var confirmBtn = GameObject.Find("ConfirmButton");
+        if (confirmBtn != null) confirmBtn.SetActive(false);
+
+        // 隐藏操作说明
+        var instr = GameObject.Find("Instruction");
+        if (instr != null) instr.SetActive(false);
+
+        var anchorText = GameObject.Find("AnchorCount");
+        if (anchorText != null) anchorText.SetActive(false);
+
+        // 隐藏锚点库存面板
+        var stockPanel = GameObject.Find("AnchorStockPanel");
+        if (stockPanel != null) stockPanel.SetActive(false);
+
+        // 隐藏所有锚点可视化
+        if (editor != null)
+        {
+            foreach (var g in editor.gameObject.scene.GetRootGameObjects())
+            {
+                if (g.name.StartsWith("Anchor_") || g.name.StartsWith("Handle"))
+                    g.SetActive(false);
+            }
+        }
+
+        // 找到玩家鸟，设置路径并启动
+        if (playerBird == null)
+            playerBird = FindAnyObjectByType<PlayerBird>();
+
+        if (playerBird != null && editor != null)
+        {
+            var path = editor.GetCurvePath();
+            playerBird.SetPath(path);
+            playerBird.autoPoop = true;
+            playerBird.autoPoopInterval = 0.3f;
+            playerBird.enabled = true;
+        }
     }
 
     GameObject CreateUIText(string name, string text, Vector2 pos, int fontSize,
