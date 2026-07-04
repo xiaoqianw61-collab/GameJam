@@ -131,15 +131,10 @@ public class PlayerBird : MonoBehaviour
         {
             if (overlapResults[i].CompareTag("Building"))
             {
-                if (HasPixelOverlap(overlapResults[i]))
-                {
-                    finished = true;
-                    autoPoop = false;
-                    OnHitObstacle?.Invoke();
-                    return;
-                }
-                // 像素未重叠 → 不算撞到，继续检查其他
-                continue;
+                finished = true;
+                autoPoop = false;
+                OnHitObstacle?.Invoke();
+                return;
             }
             if (overlapResults[i].CompareTag("Target") &&
                 overlapResults[i].TryGetComponent<Target>(out var t) && t.isHostile)
@@ -152,70 +147,15 @@ public class PlayerBird : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 像素级碰撞检测：采样障碍物贴图在重叠区域内的像素，有任意不透明像素即判定碰撞。
-    /// </summary>
-    bool HasPixelOverlap(Collider2D obstacleCollider)
-    {
-        var sr = obstacleCollider.GetComponent<SpriteRenderer>();
-        if (sr == null || sr.sprite == null || sr.sprite.texture == null)
-            return true; // 无贴图，退回用碰撞体判定
-
-        Texture2D tex = sr.sprite.texture;
-        if (!tex.isReadable) return true;
-
-        Rect texRect = sr.sprite.rect;
-        float ppu = sr.sprite.pixelsPerUnit;
-        Transform obsTransform = obstacleCollider.transform;
-
-        Bounds birdBounds = birdCollider.bounds;
-        Bounds obsBounds = obstacleCollider.bounds;
-
-        // 计算重叠区域（世界坐标）
-        Bounds overlap = new Bounds();
-        overlap.SetMinMax(
-            Vector3.Max(birdBounds.min, obsBounds.min),
-            Vector3.Min(birdBounds.max, obsBounds.max)
-        );
-
-        float spriteW = texRect.width / ppu;
-        float spriteH = texRect.height / ppu;
-        float sampleStep = 0.04f; // ≈ 每 4 像素采样一次
-
-        for (float wx = overlap.min.x; wx <= overlap.max.x; wx += sampleStep)
-        {
-            for (float wy = overlap.min.y; wy <= overlap.max.y; wy += sampleStep)
-            {
-                // 世界坐标 → 障碍物本地坐标
-                Vector3 localPt = obsTransform.InverseTransformPoint(wx, wy, 0);
-                // 本地坐标 → UV [0,1]（贴图中心对齐）
-                float u = localPt.x / spriteW + 0.5f;
-                float v = localPt.y / spriteH + 0.5f;
-                if (u < 0 || u > 1 || v < 0 || v > 1) continue;
-
-                int px = Mathf.FloorToInt(texRect.x + u * texRect.width);
-                int py = Mathf.FloorToInt(texRect.y + v * texRect.height);
-                if (px < 0 || px >= tex.width || py < 0 || py >= tex.height) continue;
-
-                if (tex.GetPixel(px, py).a > 0.05f) return true; // 有颜色像素 → 碰撞
-            }
-        }
-
-        return false; // 重叠区域全是透明像素 → 不碰撞
-    }
-
     void OnTriggerEnter2D(Collider2D other)
     {
         if (hasWon || finished) return;
 
         if (other.CompareTag("Building"))
         {
-            if (HasPixelOverlap(other))
-            {
-                finished = true;
-                autoPoop = false;
-                OnHitObstacle?.Invoke();
-            }
+            finished = true;
+            autoPoop = false;
+            OnHitObstacle?.Invoke();
         }
         else if (other.CompareTag("Target") && other.TryGetComponent<Target>(out var t) && t.isHostile)
         {
