@@ -11,8 +11,11 @@ public class GeneratePrefabs : EditorWindow
     static void Generate()
     {
         string prefabDir = "Assets/Prefabs";
+        string resourcesPrefabDir = "Assets/Resources/Prefabs";
         if (!AssetDatabase.IsValidFolder(prefabDir))
             AssetDatabase.CreateFolder("Assets", "Prefabs");
+        if (!AssetDatabase.IsValidFolder(resourcesPrefabDir))
+            AssetDatabase.CreateFolder("Assets/Resources", "Prefabs");
 
         int count = 0;
 
@@ -23,7 +26,10 @@ public class GeneratePrefabs : EditorWindow
             Sprite roadSign = LevelBuilder.GetObstacleSpriteByIndex(i);
             var obstacle = LevelBuilder.CreateObstacleRuntime(Vector2.zero, null, roadSign);
             obstacle.name = "Obstacle_" + obstacleNames[i];
-            SavePrefab(obstacle, prefabDir + "/Obstacle_" + obstacleNames[i] + ".prefab");
+            string path1 = prefabDir + "/Obstacle_" + obstacleNames[i] + ".prefab";
+            string path2 = resourcesPrefabDir + "/Obstacle_" + obstacleNames[i] + ".prefab";
+            SavePrefab(obstacle, path1);
+            AssetDatabase.CopyAsset(path1, path2);
             count++;
         }
 
