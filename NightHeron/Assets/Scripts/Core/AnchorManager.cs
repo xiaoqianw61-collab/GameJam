@@ -95,7 +95,7 @@ public class AnchorManager : MonoBehaviour
             _isDirty = false;
             // 更新曲线
             var length = splineContainer.CalculateLength();
-            var pointCount = (int) (length / 0.1f) + 1;
+            var pointCount = (int) (length / 0.2f) + 1;
             if (_posArr.Length < pointCount)
             {
                 _posArr.Dispose();
