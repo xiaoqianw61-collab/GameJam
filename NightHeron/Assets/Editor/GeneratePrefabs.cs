@@ -16,8 +16,8 @@ public class GeneratePrefabs : EditorWindow
 
         int count = 0;
 
-        // ── 1. 障碍物 ×9 ──
-        string[] obstacleNames = { "roadsign1", "roadsign2", "birdsign", "fruitshop", "popsign", "shop1", "shop2", "shop3", "shopwithtree" };
+        // ── 1. 障碍物 ×7 ──
+        string[] obstacleNames = { "birdsign", "fruitshop", "popsign", "shop1", "shop2", "shop3", "shopwithtree" };
         for (int i = 0; i < obstacleNames.Length; i++)
         {
             Sprite roadSign = LevelBuilder.GetObstacleSpriteByIndex(i);

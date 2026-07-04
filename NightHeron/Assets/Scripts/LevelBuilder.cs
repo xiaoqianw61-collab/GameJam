@@ -1286,9 +1286,8 @@ public class LevelBuilder : MonoBehaviour
         return Resources.Load<Sprite>("people0");
     }
 
-    /// <summary>9 种障碍物样式</summary>
+    /// <summary>7 种障碍物样式</summary>
     static readonly string[] ObstacleSpriteNames = {
-        "roadsign1", "roadsign2",
         "birdsign", "fruitshop", "popsign",
         "shop1", "shop2", "shop3", "shopwithtree"
     };
