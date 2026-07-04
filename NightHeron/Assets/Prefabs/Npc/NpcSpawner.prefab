@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:yousandi.cn,2023:
+--- !u!1 &5613900323647962737
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 7
+  m_Component:
+  - component: {fileID: 3427425313118058927}
+  - component: {fileID: 3697594073423134997}
+  m_Layer: 0
+  m_HasEditorInfo: 1
+  m_Name: NpcSpawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 2974397684917235467, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3427425313118058927
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5613900323647962737}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -12.180407, y: -3.0269208, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3697594073423134997
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5613900323647962737}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1df6b12f7a1240b4b3c0a986847fb0c5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  prefabArr:
+  - {fileID: 1610136016321026075, guid: 38771d90d527bce42b9cce0ffe881f57, type: 3}
+  - {fileID: 1610136016321026075, guid: c5018fbf17f05c740bb21c06a4663000, type: 3}
+  - {fileID: 1610136016321026075, guid: dc88e72a994b5d5458d7b038be56ad8c, type: 3}
+  - {fileID: 1610136016321026075, guid: e32d6d14ae82e334d933c21a7530ada9, type: 3}
+  - {fileID: 1610136016321026075, guid: 9c9464a045e5eb541b4ff625b2ce2914, type: 3}
+  - {fileID: 1610136016321026075, guid: e215eb5c92f12064ba4c382d157646a6, type: 3}

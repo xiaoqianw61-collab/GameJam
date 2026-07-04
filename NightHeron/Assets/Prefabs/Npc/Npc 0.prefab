@@ -121,7 +121,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
 --- !u!114 &3063053539194659750
@@ -137,7 +137,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   score: 1
-  beHitColor: {r: 0.78616345, g: 0.3565998, b: 0.19530463, a: 1}
+  beHitSprite: {fileID: 21300000, guid: 457192306a8dee240b307659293badfa, type: 3}
   pointWayRoot: {fileID: 4259236321103935660}
   moveTime: 1
 --- !u!58 &6254284872735833548

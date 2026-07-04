@@ -18,24 +18,44 @@ public class GameState : MonoBehaviour
     {
         [LabelText("限制锚点数")]
         public int anchorCount;
+        [LabelText("目标分数")]
+        public int[] targetScores = { 2, 4, 6 };
     }
     [LabelText("关卡配置")]
     public LevelConfig config;
+    
+    public enum EGamePhase
+    {
+        Prepare,
+        Playing,
+        Settle,
+    }
+    public EGamePhase Phase => _phase;
+    private EGamePhase _phase;
 
-    [LabelText("分数")]
-    public TextMeshProUGUI scoreText;
+    /// <summary>
+    /// 分数
+    /// </summary>
+    public int Score => _score;
+    private int _score;
+    
+    /// <summary>
+    /// 游戏结果
+    /// </summary>
+    public bool GameResult => _gameResult;
+    private bool _gameResult;
 
     public event Action<int> OnGetScore;
     public event Action<int> OnReduceScore;
-
-    private int _score;
-    private int _usedAnchorCount;
+    
+    public event Action OnGameStart;
+    public event Action<bool> OnGameFinish;
 
     private void Awake()
     {
         Instance = this;
-        scoreText.text = "分数: 0";
         UIUtil.InitUtil();
+        _phase = EGamePhase.Prepare;
     }
 
     /// <summary>
@@ -44,7 +64,6 @@ public class GameState : MonoBehaviour
     public void AddScore(int point)
     {
         _score += point;
-        scoreText.text = $"分数: {_score}";
         OnGetScore?.Invoke(point);
     }
     /// <summary>
@@ -53,7 +72,6 @@ public class GameState : MonoBehaviour
     public void ReduceScore(int point)
     {
         _score -= point;
-        scoreText.text = $"分数: {_score}";
         OnReduceScore?.Invoke(point);
     }
 
@@ -62,21 +80,44 @@ public class GameState : MonoBehaviour
     /// </summary>
     public void SetGameStart()
     {
+        _phase = EGamePhase.Playing;
         Hero.Instance.BeginFly();
+        OnGameStart?.Invoke();
     }
     /// <summary>
-    /// 结束
+    /// 失败
     /// </summary>
     public void SetGameOver()
     {
+        _phase = EGamePhase.Settle;
+        _gameResult = false;
         Hero.Instance.StopFly();
-        Debug.Log("撞墙了");
+        OnGameFinish?.Invoke(false);
     }
     /// <summary>
-    /// 结束
+    /// 通关
     /// </summary>
     public void SetGamePass()
     {
-        LevelManager.Instance.Pass();
+        _phase = EGamePhase.Settle;
+        _gameResult = true;
+        LevelManager.Instance.LevelPass();
+        OnGameFinish?.Invoke(true);
+    }
+
+    /// <summary>
+    /// 计算分数
+    /// </summary>
+    public int CalculateStar()
+    {
+        for (var i = 0; i < config.targetScores.Length; i++)
+        {
+            var score = config.targetScores[i];
+            if (_score < score)
+            {
+                return i;
+            }
+        }
+        return config.targetScores.Length;
     }
 }

@@ -8,8 +8,8 @@ public class Npc : MonoBehaviour
 {
     [SerializeField, LabelText("分数")]
     private int score;
-    [SerializeField, LabelText("被命中颜色")]
-    private Color beHitColor;
+    [SerializeField, LabelText("被命中图片")]
+    private Sprite beHitSprite;
     [Title("位移")]
     [SerializeField, LabelText("路线节点")]
     private Transform pointWayRoot;
@@ -47,7 +47,7 @@ public class Npc : MonoBehaviour
     {
         _collider.enabled = false;
         GameState.Instance.AddScore(score);
-        _renderer.color = beHitColor;
+        _renderer.sprite = beHitSprite;
     }
 
 #if UNITY_EDITOR

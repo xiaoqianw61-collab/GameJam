@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using DefaultNamespace;
+using UnityEditor;
 using UnityEngine;
 
 public static class ProjTools
@@ -6,9 +7,14 @@ public static class ProjTools
     [MenuItem("Tools/Night Heron/Test")]
     public static void Test()
     {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Npc/NpcSpawner.prefab");
+        var index = 0;
         foreach (var transform in Selection.transforms)
         {
-            transform.position += new Vector3(Random.value * 0.25f, Random.value * 0.25f);
+            var obj = (GameObject) PrefabUtility.InstantiatePrefab(prefab);
+            obj.name = index.ToString();
+            obj.transform.position = transform.position;
+            index++;
         }
     }
 }
