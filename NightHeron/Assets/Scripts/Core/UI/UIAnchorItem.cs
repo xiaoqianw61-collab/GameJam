@@ -37,14 +37,15 @@ namespace UI
             handleLink.gameObject.SetActive(false);
             for (var i = 0; i < handles.Length; i++)
             {
-                handles[i].SetDragCb(OnDragCb);
+                var index = i;
+                handles[i].SetDragCb(() => OnDragCb(index));
             }
         }
 
-        private void OnDragCb()
+        private void OnDragCb(int index)
         {
             var newPos = CameraManager.MouseWorldPos;
-            AnchorManager.Instance.SetAnchorTangent(curIndex, newPos);
+            AnchorManager.Instance.SetAnchorTangent(curIndex, newPos, index == 0);
             RefreshHandle();
         }
 

@@ -126,11 +126,13 @@ public class AnchorManager : MonoBehaviour
         OnAnchorInfoChanged?.Invoke();
         SetDirty();
     }
-    public void SetAnchorTangent(int index, Vector3 pos)
+    public void SetAnchorTangent(int index, Vector3 pos, bool isHandle0)
     {
         var knot = _allAnchor[index];
         var delta = pos - (Vector3) knot.Position;
-        var angle = (Vector2.SignedAngle(delta, Vector2.up) + 360) % 360f;
+        var angle = Vector2.SignedAngle(delta, Vector2.up);
+        if (!isHandle0) angle += 180;
+        angle = (angle + 360) % 360f;
         var dis = delta.magnitude;
         knot.Rotation = CalculateAngle(angle);
         knot.TangentIn = new float3(0, 0, -dis);
