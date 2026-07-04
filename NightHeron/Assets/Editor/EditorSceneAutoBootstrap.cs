@@ -6,14 +6,22 @@ using System.Collections.Generic;
 
 /// <summary>
 /// 编辑器启动时确保项目配置正确：
-/// 1. 场景存在 → 打开 NightHeronScene
-/// 2. Build Settings 包含场景
+/// 1. 场景存在 → 打开 MenuScene
+/// 2. Build Settings 包含所有场景（Menu + Level1~6）
 /// 3. TagManager 包含所需 Tag
 /// </summary>
 [InitializeOnLoad]
 public static class EditorSceneAutoBootstrap
 {
-    // static readonly string ScenePath = Path.Combine("Assets", "Scenes", "NightHeronScene.unity");
+    // static readonly string MenuScenePath = Path.Combine("Assets", "Scenes", "MenuScene.unity");
+    // static readonly string[] LevelPaths = {
+    //     Path.Combine("Assets", "Scenes", "Level1.unity"),
+    //     Path.Combine("Assets", "Scenes", "Level2.unity"),
+    //     Path.Combine("Assets", "Scenes", "Level3.unity"),
+    //     Path.Combine("Assets", "Scenes", "Level4.unity"),
+    //     Path.Combine("Assets", "Scenes", "Level5.unity"),
+    //     Path.Combine("Assets", "Scenes", "Level6.unity"),
+    // };
     //
     // static readonly string[] RequiredTags = {
     //     "Player", "Target", "Building", "Ground", "Poop"
@@ -29,13 +37,18 @@ public static class EditorSceneAutoBootstrap
     //     if (EditorApplication.isPlayingOrWillChangePlaymode) return;
     //
     //     EnsureTags();
-    //     EnsureScene();
+    //
+    //     // 优先打开 MenuScene；如果不存在则打开 NightHeronScene（兼容旧版）再提示创建
+    //     if (!EnsureMenuSceneOpen())
+    //     {
+    //         Debug.LogWarning("[Night Heron] MenuScene not found. Please run Tools > Build All Scenes to create all scenes.");
+    //     }
+    //
     //     EnsureBuildSettings();
     // }
     //
     // static void EnsureTags()
     // {
-    //     // 动态读取 TagManager 并补全缺失的 Tag
     //     SerializedObject tagManager = new SerializedObject(
     //         AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
     //
@@ -58,45 +71,60 @@ public static class EditorSceneAutoBootstrap
     //     if (needsApply)
     //     {
     //         tagManager.ApplyModifiedPropertiesWithoutUndo();
-    //         Debug.Log("[Night Heron] Registered missing tags: " + string.Join(", ", RequiredTags));
+    //         Debug.Log("[Night Heron] Registered tags: " + string.Join(", ", RequiredTags));
     //     }
     // }
     //
-    // static void EnsureScene()
+    // static bool EnsureMenuSceneOpen()
     // {
-    //     string fullPath = Path.Combine(Application.dataPath, "..", ScenePath);
+    //     string fullPath = Path.Combine(Application.dataPath, "..", MenuScenePath);
     //     if (File.Exists(fullPath))
     //     {
     //         var active = EditorSceneManager.GetActiveScene();
-    //         if (!active.IsValid() || active.name != "NightHeronScene")
+    //         if (!active.IsValid() || active.name != "MenuScene")
     //         {
-    //             EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+    //             EditorSceneManager.OpenScene(MenuScenePath, OpenSceneMode.Single);
     //         }
-    //         return;
+    //         return true;
     //     }
     //
-    //     // 场景不存在 → 创建
-    //     var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-    //     var go = new GameObject("LevelBuilder");
-    //     go.AddComponent<LevelBuilder>();
+    //     // 回退：兼容旧版 NightHeronScene
+    //     string oldPath = Path.Combine(Application.dataPath, "..", "Assets", "Scenes", "NightHeronScene.unity");
+    //     if (File.Exists(oldPath))
+    //     {
+    //         EditorSceneManager.OpenScene(oldPath, OpenSceneMode.Single);
+    //         Debug.Log("[Night Heron] Using legacy NightHeronScene. Consider running Tools > Build All Scenes.");
+    //         return false;
+    //     }
     //
-    //     string sceneDir = Path.Combine(Application.dataPath, "Scenes");
-    //     if (!Directory.Exists(sceneDir)) Directory.CreateDirectory(sceneDir);
-    //
-    //     EditorSceneManager.SaveScene(scene, ScenePath, true);
-    //     Debug.Log("[Night Heron] Created scene: " + ScenePath);
+    //     return false;
     // }
     //
     // static void EnsureBuildSettings()
     // {
-    //     List<EditorBuildSettingsScene> scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
-    //     bool found = scenes.Exists(s => s.path == ScenePath);
+    //     List<EditorBuildSettingsScene> currentScenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
     //
-    //     if (!found)
+    //     bool hasMenu = currentScenes.Exists(s => s.path == MenuScenePath);
+    //     if (!hasMenu)
     //     {
-    //         scenes.Add(new EditorBuildSettingsScene(ScenePath, true));
-    //         EditorBuildSettings.scenes = scenes.ToArray();
-    //         Debug.Log("[Night Heron] Added scene to Build Settings: " + ScenePath);
+    //         currentScenes.Insert(0, new EditorBuildSettingsScene(MenuScenePath, true));
+    //     }
+    //
+    //     // 检查关卡场景
+    //     bool anyMissing = false;
+    //     foreach (string lp in LevelPaths)
+    //     {
+    //         if (!currentScenes.Exists(s => s.path == lp))
+    //         {
+    //             currentScenes.Add(new EditorBuildSettingsScene(lp, true));
+    //             anyMissing = true;
+    //         }
+    //     }
+    //
+    //     if (!hasMenu || anyMissing)
+    //     {
+    //         EditorBuildSettings.scenes = currentScenes.ToArray();
+    //         Debug.Log("[Night Heron] Build Settings updated with all scenes.");
     //     }
     // }
 }

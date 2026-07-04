@@ -34,7 +34,7 @@ public class Interactable : MonoBehaviour
     public void Hit()
     {
         _collider.enabled = false;
-        GameManager.Instance.AddScore(score);
+        // GameManager.Instance.AddScore(score);
     }
 
 #if UNITY_EDITOR

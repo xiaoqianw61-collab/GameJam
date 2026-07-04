@@ -12,6 +12,9 @@ using System.IO;
 /// </summary>
 public class LevelBuilder : MonoBehaviour
 {
+    [Header("关卡配置")]
+    public int levelIndex = 1;
+
     [Header("地图")]
     public float mapWidth = 28f;
     public float mapHeight = 14f;
@@ -21,20 +24,72 @@ public class LevelBuilder : MonoBehaviour
     public int personCount = 8;
     public int carCount = 4;
 
-    [Header("兼容编辑器工具")]
-    public int buildingCount = 5;
-    public int signCount = 3;
-
     [Header("起点/终点")]
     public Vector3 startPos = new Vector3(-9f, 4f, 0f);
     public Vector3 endPos = new Vector3(19f, 4f, 0f);
 
+    private AnchorEditor editor;
+    private PlayerBird playerBird;
+    private bool gameStarted = false;
+
     void Awake()
     {
+        // 编辑器模式不执行
+        if (!Application.isPlaying) return;
+
+        // 菜单场景（NightHeronScene / MenuScene）：不生成关卡内容，由 GameManager 控制菜单流程
+        var sceneName = gameObject.scene.name;
+        if (sceneName == "NightHeronScene" || sceneName == "MenuScene")
+        {
+            Debug.Log($"[LevelBuilder] 菜单场景 {sceneName}，跳过生成。");
+            return;
+        }
+
+        // 关卡场景：判断是否已烘焙
+        bool alreadyBaked = Camera.main != null && GameObject.Find("Ground") != null;
+        if (alreadyBaked)
+        {
+            // 必须用 Include 查找，因为 PlayerBird 在烘焙场景中 enabled=false
+            var birds = FindObjectsByType<PlayerBird>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            playerBird = birds.Length > 0 ? birds[0] : null;
+            var editors = FindObjectsByType<AnchorEditor>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            editor = editors.Length > 0 ? editors[0] : null;
+
+            // 强制重新绑定按钮监听（烘焙时的序列化回调可能解析失败）
+            var confirmBtn = GameObject.Find("ConfirmButton");
+            if (confirmBtn != null)
+            {
+                var btn = confirmBtn.GetComponent<Button>();
+                if (btn != null)
+                {
+                    btn.onClick.RemoveAllListeners();
+                    btn.onClick.AddListener(StartGame);
+                }
+            }
+
+            // 恢复 AnchorEditor 的 UI 引用（烘焙时也会丢失）
+            if (editor != null)
+            {
+                var anchorCountGO = GameObject.Find("AnchorCount");
+                if (anchorCountGO != null) editor.anchorCountText = anchorCountGO.GetComponent<Text>();
+
+                var stockImages = new List<Image>();
+                for (int i = 0; i < 4; i++)
+                {
+                    var sq = GameObject.Find($"StockSquare_{i}");
+                    if (sq != null) stockImages.Add(sq.GetComponent<Image>());
+                }
+                editor.anchorStockImages = stockImages;
+            }
+
+            Debug.Log($"[LevelBuilder] 场景 {sceneName} 已烘焙，playerBird={playerBird != null}, editor={editor != null}, button={confirmBtn != null}");
+            return;
+        }
+
+        Debug.Log($"[LevelBuilder] 场景 {sceneName} 未烘焙，开始生成关卡内容。");
         GenerateLevel();
     }
-
-    void GenerateLevel()
+    public void GenerateLevel()
     {
         CreateCamera();
         CreateGround();
@@ -43,7 +98,6 @@ public class LevelBuilder : MonoBehaviour
         CreateStartEndMarkers();
         CreatePlayer();
         CreateAnchorEditor();
-        CreateGameManager();
         CreateUI();
     }
 
@@ -99,10 +153,8 @@ public class LevelBuilder : MonoBehaviour
     {
         var parent = new GameObject("Obstacles").transform;
 
-        Vector2[] positions = {
-            new(-3f, 3f), new(3f, 6f), new(8f, 2.5f),
-            new(14f, 5f), new(17f, 2f)
-        };
+        // 每关不同的障碍物布局
+        Vector2[] positions = GetObstaclePositions(levelIndex);
 
         for (int i = 0; i < Mathf.Min(obstacleCount, positions.Length); i++)
         {
@@ -113,7 +165,7 @@ public class LevelBuilder : MonoBehaviour
 
             var srr = go.AddComponent<SpriteRenderer>();
             srr.sprite = CreateRectSprite(32, 32, Color.white);
-            srr.color = new Color(0.7f, 0.7f, 0.7f); // 浅灰方块
+            srr.color = new Color(0.7f, 0.7f, 0.7f);
             srr.sortingOrder = 1;
 
             float w = Random.Range(1.2f, 2.5f);
@@ -125,6 +177,21 @@ public class LevelBuilder : MonoBehaviour
 
             var target = go.AddComponent<Target>();
             target.type = Target.TargetType.Building;
+        }
+    }
+
+    /// <summary>每关不同的障碍物位置</summary>
+    Vector2[] GetObstaclePositions(int level)
+    {
+        switch (level)
+        {
+            case 1: return new Vector2[] { new(-3f, 3f), new(3f, 6f), new(8f, 2.5f) };
+            case 2: return new Vector2[] { new(-2f, 5f), new(5f, 1.5f), new(10f, 4f), new(14f, 6f) };
+            case 3: return new Vector2[] { new(-4f, 2f), new(1f, 3.5f), new(7f, 6f), new(13f, 2f), new(17f, 5f) };
+            case 4: return new Vector2[] { new(-5f, 4f), new(0f, 1f), new(6f, 3f), new(12f, 5.5f), new(18f, 1.5f) };
+            case 5: return new Vector2[] { new(-3f, 6f), new(2f, 2f), new(8f, 5f), new(15f, 3.5f), new(19f, 6.5f) };
+            case 6: return new Vector2[] { new(-4f, 1.5f), new(3f, 5f), new(9f, 1f), new(14f, 4f), new(20f, 2.5f) };
+            default: return new Vector2[] { new(-3f, 3f), new(3f, 6f), new(8f, 2.5f), new(14f, 5f), new(17f, 2f) };
         }
     }
 
@@ -146,8 +213,6 @@ public class LevelBuilder : MonoBehaviour
             CreateMotorcycle(pos, parent);
         }
 
-        // var gm = FindAnyObjectByType<GameManager>();
-        // if (gm != null) gm.SetTotalTargets(personCount + carCount + obstacleCount);
     }
 
     Vector2 GetRandomPos(List<Vector2> occupied, float xMin, float xMax, float yMin, float yMax)
@@ -250,39 +315,38 @@ public class LevelBuilder : MonoBehaviour
         playerBird.poopPoint = poopPoint.transform;
         playerBird.flySpeed = 6f;
         playerBird.poopSpeed = 12f;
+        playerBird.autoPoop = false; // 编辑阶段不自动拉
         playerBird.enabled = false; // 设计阶段先不动
+        this.playerBird = playerBird;
     }
 
     // ─── 锚点编辑器 ───
     void CreateAnchorEditor()
     {
         var go = new GameObject("AnchorEditor");
-        var editor = go.AddComponent<AnchorEditor>();
+        editor = go.AddComponent<AnchorEditor>();
         editor.startPos = startPos;
         editor.endPos = endPos;
-    }
-
-    // ─── GameManager ───
-    void CreateGameManager()
-    {
-        var go = new GameObject("GameManager");
-        go.AddComponent<GameManager>();
+        editor.isEditing = true;
     }
 
     // ─── UI ───
     void CreateUI()
     {
+        // 必须有 EventSystem，否则 Button 点击无效
+        // EventSystem 由 GameManager 跨场景持久化创建，LevelBuilder 不再创建
+        // if (FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
+        // {
+        //     var esGO = new GameObject("EventSystem");
+        //     esGO.AddComponent<UnityEngine.EventSystems.EventSystem>();
+        //     esGO.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+        // }
+
         var canvasGO = new GameObject("Canvas");
         var canvas = canvasGO.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvasGO.AddComponent<CanvasScaler>();
         canvasGO.AddComponent<GraphicRaycaster>();
-
-        var scoreText = CreateUIText("Score", "Score: 0",
-            new Vector2(16, -12), 24, TextAnchor.UpperLeft, canvasGO.transform);
-
-        var comboText = CreateUIText("Combo", "",
-            new Vector2(16, -44), 28, TextAnchor.UpperLeft, canvasGO.transform);
 
         var instrText = CreateUIText("Instruction",
             "左键空白：放锚点 | 左键锚点：选中/激活手柄 | 拖蓝点：调曲线 | 退格：撤销",
@@ -299,33 +363,15 @@ public class LevelBuilder : MonoBehaviour
         anchorRt.anchorMax = new Vector2(0.5f, 1f);
         anchorRt.sizeDelta = new Vector2(500, 40);
 
-        var panel = new GameObject("GameOverPanel");
-        panel.transform.SetParent(canvasGO.transform);
-        var panelRt = panel.AddComponent<RectTransform>();
-        panelRt.anchorMin = Vector2.zero; panelRt.anchorMax = Vector2.one;
-        panelRt.offsetMin = Vector2.zero; panelRt.offsetMax = Vector2.zero;
-        panel.AddComponent<Image>().color = new Color(0, 0, 0, 0.7f);
-        panel.SetActive(false);
-
-        var finalText = CreateUIText("FinalText", "",
-            Vector2.zero, 36, TextAnchor.MiddleCenter, panel.transform);
-
-        var gm = FindAnyObjectByType<GameManager>();
-        if (gm != null)
-        {
-            // gm.scoreText = scoreText.GetComponent<Text>();
-            // gm.comboText = comboText.GetComponent<Text>();
-            // gm.instructionText = instrText.GetComponent<Text>();
-            // gm.gameOverPanel = panel;
-            // gm.finalScoreText = finalText.GetComponent<Text>();
-        }
-
         // 把锚点数量文本传给 AnchorEditor
         var editor = FindAnyObjectByType<AnchorEditor>();
         if (editor != null) editor.anchorCountText = anchorText.GetComponent<Text>();
 
         // ─── 锚点库存面板（底部）───
         CreateAnchorStockUI(canvasGO.transform, editor);
+
+        // ─── 确认按钮（右侧中间）───
+        CreateConfirmButton(canvasGO.transform);
     }
 
     void CreateAnchorStockUI(Transform canvas, AnchorEditor editor)
@@ -366,6 +412,92 @@ public class LevelBuilder : MonoBehaviour
         }
 
         if (editor != null) editor.anchorStockImages = stockImages;
+    }
+
+    /// <summary>
+    /// 确认按钮：锁定编辑，鸟开始沿玩家画的路线飞行，并持续拉屎
+    /// </summary>
+    void CreateConfirmButton(Transform canvas)
+    {
+        var btnGO = new GameObject("ConfirmButton");
+        btnGO.transform.SetParent(canvas);
+
+        var btnRt = btnGO.AddComponent<RectTransform>();
+        btnRt.anchorMin = new Vector2(1f, 0f);
+        btnRt.anchorMax = new Vector2(1f, 0f);
+        btnRt.anchoredPosition = new Vector2(-80, 40);
+        btnRt.sizeDelta = new Vector2(120, 50);
+
+        var btnImg = btnGO.AddComponent<Image>();
+        btnImg.color = new Color(0.2f, 0.7f, 0.3f);
+
+        var btn = btnGO.AddComponent<Button>();
+
+        // 按钮文字
+        var btnText = CreateUIText("ConfirmBtnText", "开始拉屎！",
+            Vector2.zero, 20, TextAnchor.MiddleCenter, btnGO.transform);
+        var btnTextRt = btnText.GetComponent<RectTransform>();
+        btnTextRt.anchorMin = Vector2.zero;
+        btnTextRt.anchorMax = Vector2.one;
+        btnTextRt.offsetMin = Vector2.zero;
+        btnTextRt.offsetMax = Vector2.zero;
+        btnTextRt.anchoredPosition = Vector2.zero;
+
+        btn.onClick.AddListener(StartGame);
+    }
+
+    /// <summary>
+    /// 开始游戏：锁定锚点编辑，鸟开始飞行并自动拉屎
+    /// </summary>
+    void StartGame()
+    {
+        if (gameStarted) return;
+        gameStarted = true;
+
+        // 锁定编辑
+        if (editor != null)
+            editor.isEditing = false;
+
+        // 隐藏确认按钮
+        var confirmBtn = GameObject.Find("ConfirmButton");
+        if (confirmBtn != null) confirmBtn.SetActive(false);
+
+        // 隐藏操作说明
+        var instr = GameObject.Find("Instruction");
+        if (instr != null) instr.SetActive(false);
+
+        var anchorText = GameObject.Find("AnchorCount");
+        if (anchorText != null) anchorText.SetActive(false);
+
+        // 隐藏锚点库存面板
+        var stockPanel = GameObject.Find("AnchorStockPanel");
+        if (stockPanel != null) stockPanel.SetActive(false);
+
+        // 隐藏所有锚点可视化
+        if (editor != null)
+        {
+            foreach (var g in editor.gameObject.scene.GetRootGameObjects())
+            {
+                if (g.name.StartsWith("Anchor_") || g.name.StartsWith("Handle"))
+                    g.SetActive(false);
+            }
+        }
+
+        // 找到玩家鸟，设置路径并启动
+        if (playerBird == null)
+        {
+            var birds = FindObjectsByType<PlayerBird>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            playerBird = birds.Length > 0 ? birds[0] : null;
+        }
+
+        if (playerBird != null && editor != null)
+        {
+            var path = editor.GetCurvePath();
+            playerBird.SetPath(path);
+            playerBird.autoPoop = true;
+            playerBird.autoPoopInterval = 0.3f;
+            playerBird.enabled = true;
+        }
     }
 
     GameObject CreateUIText(string name, string text, Vector2 pos, int fontSize,
