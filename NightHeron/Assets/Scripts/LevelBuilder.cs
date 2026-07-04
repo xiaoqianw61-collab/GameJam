@@ -1288,7 +1288,7 @@ public class LevelBuilder : MonoBehaviour
 
     /// <summary>7 种障碍物样式</summary>
     static readonly string[] ObstacleSpriteNames = {
-        "birdsign", "fruitshop", "popsign",
+        "roadsign1", "roadsign2", "popsign",
         "shop1", "shop2", "shop3", "shopwithtree"
     };
 
