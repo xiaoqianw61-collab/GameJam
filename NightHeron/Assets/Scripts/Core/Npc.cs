@@ -8,6 +8,9 @@ public class Npc : MonoBehaviour
 {
     [SerializeField, LabelText("分数")]
     private int score;
+    [SerializeField, LabelText("被命中颜色")]
+    private Color beHitColor;
+    [Title("位移")]
     [SerializeField, LabelText("路线节点")]
     private Transform pointWayRoot;
     [SerializeField, LabelText("移动时间")]
@@ -15,6 +18,12 @@ public class Npc : MonoBehaviour
 
     private Vector3[] _posArr;
     private Collider2D _collider;
+    private SpriteRenderer _renderer;
+    private void Awake()
+    {
+        _collider = GetComponent<Collider2D>();
+        _renderer = GetComponent<SpriteRenderer>();
+    }
     private void Start()
     {
         if (pointWayRoot != null && pointWayRoot.childCount > 0)
@@ -38,6 +47,7 @@ public class Npc : MonoBehaviour
     {
         _collider.enabled = false;
         GameState.Instance.AddScore(score);
+        _renderer.color = beHitColor;
     }
 
 #if UNITY_EDITOR

@@ -11,9 +11,11 @@ GameObject:
   - component: {fileID: 2406540583149513120}
   - component: {fileID: 699640655132581216}
   - component: {fileID: 220458147843108204}
+  - component: {fileID: 1598277373073715511}
   - component: {fileID: 6047334341352835019}
   - component: {fileID: 7846008998057997152}
   - component: {fileID: 1228257813824982284}
+  - component: {fileID: 7353854118169830157}
   m_Layer: 30
   m_HasEditorInfo: 1
   m_Name: Hero
@@ -104,6 +106,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e282085d474744579a3174bdc7b6dbf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  animate: {fileID: 7353854118169830157}
+--- !u!50 &1598277373073715511
+Rigidbody2D:
+  serializedVersion: 4
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1764461686315864519}
+  m_BodyType: 1
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDrag: 0
+  m_AngularDrag: 0.05
+  m_GravityScale: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 0
 --- !u!58 &6047334341352835019
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -134,12 +164,12 @@ CircleCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeLayer: 0
   m_Offset: {x: 0, y: 0}
-  m_Radius: 0.5
+  m_Radius: 0.65
 --- !u!210 &7846008998057997152
 SortingGroup:
   m_ObjectHideFlags: 0
@@ -164,8 +194,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 05b381783ac54f3ab31737afceb1bdee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  autoStart: 0
   hitReduceScore: 5
   attackInterval: 0.2
-  hitRadius: 0.5
+  hitRadius: 1
   hitDelay: 1
   attackVfx: {fileID: 4483442300625100160, guid: ba8343d765111bf48991ce59a6e8432d, type: 3}
+--- !u!114 &7353854118169830157
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1764461686315864519}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29a074d529cf945029ef7cf40540c9df, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Target: {fileID: 0}
+  m_PlayOnAwake: 0
+  m_LoopMode: 0
+  m_Method: 1
+  m_Duration: 3.2338016
+  m_MaxSpeed: 10
+  m_EasingMode: 0
+  m_AlignmentMode: 0
+  m_ObjectForwardAxis: 2
+  m_ObjectUpAxis: 1
+  m_StartOffset: 0

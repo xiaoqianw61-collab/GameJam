@@ -10,22 +10,22 @@ EditorBuildSettings:
     guid: 39b954c578aee4b38b9d63e4f2c9e4b0
   - enabled: 1
     path: Assets/Scenes/Level1.unity
-    guid: 3f43e3b6cbfcd45de87c9aba5f8e875a
+    guid: 2679067bffd39a94aa73d73a07e12a16
   - enabled: 1
     path: Assets/Scenes/Level2.unity
-    guid: 2783b7a9138654253a0afad826e2c1ac
+    guid: b97546bd208b24c44b151e9c1d9fd099
   - enabled: 1
     path: Assets/Scenes/Level3.unity
-    guid: 5e2a0da13e99446049f0b197520f16e1
+    guid: ff12f84d85c82994382e398d1fae81cb
   - enabled: 1
     path: Assets/Scenes/Level4.unity
-    guid: 023d1863777d9441296140dab8fa78d7
+    guid: 5bcc7737927714847a0464ad0e7022cb
   - enabled: 1
     path: Assets/Scenes/Level5.unity
-    guid: ff74880df86b141b4b016caadbb9f344
+    guid: e45a60f315f5b674a943c72cd383632c
   - enabled: 1
     path: Assets/Scenes/Level6.unity
-    guid: 896dc34064b874615acd5454678ae432
+    guid: 53d35a28f162d4be09c29f9327fad6a8
   m_BuildProfiles: []
   m_configObjects: {}
   m_SlimFeaturesWeixinMiniGame:

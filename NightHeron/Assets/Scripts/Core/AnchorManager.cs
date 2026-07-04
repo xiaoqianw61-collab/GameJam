@@ -18,6 +18,10 @@ public class AnchorManager : MonoBehaviour
     private SplineContainer splineContainer;
     [SerializeField]
     private LineRenderer lineRenderer;
+    [SerializeField]
+    private Transform startPos;
+    [SerializeField]
+    private Transform endPos;
 
     /// <summary>
     /// 所有锚点信息
@@ -43,7 +47,6 @@ public class AnchorManager : MonoBehaviour
         Instance = this;
         
         _posArr = new NativeArray<Vector3>(1024, Allocator.Persistent);
-        _isDirty = true;
         _usedAnchorCount = 0;
         
         _allAnchor = splineContainer.Spline.Knots.ToList();
@@ -52,6 +55,17 @@ public class AnchorManager : MonoBehaviour
         {
             _allAnchorAngle.Add(0);
         }
+        var startAnchor = _allAnchor[0];
+        var endAnchor = _allAnchor[1];
+        startAnchor.Position = startPos.position;
+        endAnchor.Position = endPos.position;
+        _allAnchor[0] = startAnchor;
+        _allAnchor[1] = endAnchor;
+        splineContainer.Spline.Knots = _allAnchor;
+        splineContainer.Spline.SetTangentMode(0, TangentMode.AutoSmooth);
+        splineContainer.Spline.SetTangentMode(1, TangentMode.AutoSmooth);
+        
+        _isDirty = true;
     }
     private void OnDestroy()
     {
@@ -85,7 +99,7 @@ public class AnchorManager : MonoBehaviour
             if (_posArr.Length < pointCount)
             {
                 _posArr.Dispose();
-                _posArr = new NativeArray<Vector3>(Mathf.ClosestPowerOfTwo(pointCount), Allocator.Persistent);
+                _posArr = new NativeArray<Vector3>(pointCount, Allocator.Persistent);
             }
             for (int i = 0; i < pointCount - 1; i++)
             {
@@ -128,17 +142,11 @@ public class AnchorManager : MonoBehaviour
         SetDirty();
     }
 
-    private void UpdateAnchor()
-    {
-        
-    }
-
     public bool CanAddAnchor()
     {
         return _usedAnchorCount < GameState.Instance.config.anchorCount;
     }
 
-    [Button]
     private void SetDirty()
     {
         _isDirty = true;

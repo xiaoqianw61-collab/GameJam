@@ -1,5 +1,6 @@
 ﻿using System;
 using Sirenix.OdinInspector;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -21,6 +22,9 @@ public class GameState : MonoBehaviour
     [LabelText("关卡配置")]
     public LevelConfig config;
 
+    [LabelText("分数")]
+    public TextMeshProUGUI scoreText;
+
     public event Action<int> OnGetScore;
     public event Action<int> OnReduceScore;
 
@@ -30,6 +34,7 @@ public class GameState : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        scoreText.text = "分数: 0";
         UIUtil.InitUtil();
     }
 
@@ -39,6 +44,7 @@ public class GameState : MonoBehaviour
     public void AddScore(int point)
     {
         _score += point;
+        scoreText.text = $"分数: {_score}";
         OnGetScore?.Invoke(point);
     }
     /// <summary>
@@ -47,11 +53,30 @@ public class GameState : MonoBehaviour
     public void ReduceScore(int point)
     {
         _score -= point;
+        scoreText.text = $"分数: {_score}";
         OnReduceScore?.Invoke(point);
     }
 
+    /// <summary>
+    /// 开始
+    /// </summary>
+    public void SetGameStart()
+    {
+        Hero.Instance.BeginFly();
+    }
+    /// <summary>
+    /// 结束
+    /// </summary>
     public void SetGameOver()
     {
+        Hero.Instance.StopFly();
         Debug.Log("撞墙了");
+    }
+    /// <summary>
+    /// 结束
+    /// </summary>
+    public void SetGamePass()
+    {
+        LevelManager.Instance.Pass();
     }
 }

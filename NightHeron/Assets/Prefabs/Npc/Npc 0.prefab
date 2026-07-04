@@ -137,6 +137,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   score: 1
+  beHitColor: {r: 0.78616345, g: 0.3565998, b: 0.19530463, a: 1}
   pointWayRoot: {fileID: 4259236321103935660}
   moveTime: 1
 --- !u!58 &6254284872735833548
@@ -169,12 +170,12 @@ CircleCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeLayer: 0
   m_Offset: {x: 0, y: 0}
-  m_Radius: 0.5
+  m_Radius: 0.90000004
 --- !u!210 &830049966112656567
 SortingGroup:
   m_ObjectHideFlags: 0

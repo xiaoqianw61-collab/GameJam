@@ -189,7 +189,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 05b381783ac54f3ab31737afceb1bdee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  autoStart: 1
+  hitReduceScore: 5
   attackInterval: 4
+  hitRadius: 1.5
   hitDelay: 2
   attackVfx: {fileID: 4483442300625100160, guid: 6cae34e89a572b44a9a56d3320761ef8, type: 3}
 --- !u!210 &4767972226022944751
