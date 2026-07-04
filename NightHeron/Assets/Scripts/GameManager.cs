@@ -206,7 +206,7 @@ public class GameManager : MonoBehaviour
         {
             int level = i + 1;
             Vector2 screenPos = new Vector2(nodePositions[i].x * w, nodePositions[i].y * h);
-            CreateInvisibleHotspot(level, screenPos, menuCanvas.transform);
+            CreateLevelMarker(level, screenPos, menuCanvas.transform);
         }
     }
 
@@ -368,20 +368,70 @@ public class GameManager : MonoBehaviour
         return go;
     }
 
-    void CreateInvisibleHotspot(int level, Vector2 screenPos, Transform parent)
+    void CreateLevelMarker(int level, Vector2 screenPos, Transform parent)
     {
-        var btnGO = new GameObject("Hotspot_L" + level);
+        var btnGO = new GameObject("Marker_L" + level);
         btnGO.transform.SetParent(parent, false);
         var rt = btnGO.AddComponent<RectTransform>();
         rt.anchorMin = rt.anchorMax = Vector2.zero;
         rt.anchoredPosition = screenPos;
-        rt.sizeDelta = new Vector2(120, 120);
+        rt.sizeDelta = new Vector2(100, 100);
 
+        // 蓝色圆底 + 白边，与地图蓝白色调和谐
         var img = btnGO.AddComponent<Image>();
-        img.color = new Color(0, 0, 0, 0);
+        img.sprite = CreateCircleSprite(50, new Color(0.36f, 0.60f, 0.84f, 0.92f), Color.white, 5);
+        img.color = Color.white;
+        img.type = Image.Type.Simple;
+
+        // 关卡编号
+        var labelGO = new GameObject("Label");
+        labelGO.transform.SetParent(btnGO.transform, false);
+        var labelRT = labelGO.AddComponent<RectTransform>();
+        labelRT.anchorMin = labelRT.anchorMax = new Vector2(0.5f, 0.5f);
+        labelRT.anchoredPosition = Vector2.zero;
+        labelRT.sizeDelta = new Vector2(100, 100);
+
+        var label = labelGO.AddComponent<Text>();
+        label.text = level.ToString();
+        label.font = GetSafeFont();
+        label.fontSize = 48;
+        label.color = Color.white;
+        label.alignment = TextAnchor.MiddleCenter;
+        label.horizontalOverflow = HorizontalWrapMode.Overflow;
+        label.verticalOverflow = VerticalWrapMode.Overflow;
 
         var btn = btnGO.AddComponent<Button>();
         int idx = level;
         btn.onClick.AddListener(() => RequestEnterLevel(idx));
+    }
+
+    /// <summary>
+    /// 生成带白边的实心圆 Sprite，用于关卡标记。
+    /// </summary>
+    static Sprite CreateCircleSprite(int radius, Color fillColor, Color borderColor, int borderWidth)
+    {
+        int size = radius * 2;
+        var tex = new Texture2D(size, size);
+        float r = radius;
+        float rInner = r - borderWidth;
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = x - radius;
+                float dy = y - radius;
+                float dist = Mathf.Sqrt(dx * dx + dy * dy);
+
+                if (dist <= rInner)
+                    tex.SetPixel(x, y, fillColor);
+                else if (dist <= r)
+                    tex.SetPixel(x, y, borderColor);
+                else
+                    tex.SetPixel(x, y, Color.clear);
+            }
+        }
+        tex.filterMode = FilterMode.Bilinear;
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
     }
 }
