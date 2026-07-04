@@ -63,16 +63,17 @@ public class Attackable : MonoBehaviour
 
     private void Attack()
     {
-        DOVirtual.DelayedCall(hitDelay, Hit, false).SetId(_animBinder);
+        var pos = transform.position;
+        DOVirtual.DelayedCall(hitDelay, () => Hit(pos), false).SetId(_animBinder);
         Instantiate(attackVfx, transform.position, Quaternion.identity);
     }
 
-    private void Hit()
+    private void Hit(Vector3 pos)
     {
         // 玩家
         if (tag == "Player")
         {
-            var count = Physics2D.OverlapCircle(transform.position, hitRadius, _filter2D, _hits);
+            var count = Physics2D.OverlapCircle(pos, hitRadius, _filter2D, _hits);
             for (int i = 0; i < count; i++)
             {
                 var hit = _hits[i];
@@ -85,7 +86,7 @@ public class Attackable : MonoBehaviour
         // 目标
         else if (tag == "Target" || tag == "Building")
         {
-            var count = Physics2D.OverlapCircle(transform.position, hitRadius, _filter2D, _hits);
+            var count = Physics2D.OverlapCircle(pos, hitRadius, _filter2D, _hits);
             for (int i = 0; i < count; i++)
             {
                 var hit = _hits[i];

@@ -196,7 +196,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   autoStart: 0
   hitReduceScore: 5
-  attackInterval: 0.2
+  attackInterval: 0.1
   hitRadius: 1
   hitDelay: 1
   attackVfx: {fileID: 4483442300625100160, guid: ba8343d765111bf48991ce59a6e8432d, type: 3}
