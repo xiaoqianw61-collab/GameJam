@@ -22,14 +22,27 @@ public class GameManager : MonoBehaviour
     /// <summary>当前关卡索引（从 LevelManager 同步）</summary>
     public int CurrentLevel => LevelManager.Instance != null ? LevelManager.Instance.CurrentLevelIndex : 0;
 
+    // ─── 评分 ───
+    [Header("评分")]
+    public int currentScore = 0;
+    /// <summary>本关理论满分（所有目标中心命中 ×1.5）</summary>
+    public int maxPossibleScore = 0;
+
     private GameObject menuCanvas;
     private bool isStartScreen;
     private bool canSkip;
+    private bool showLevelMapOnMenuLoad; // 返回菜单时直接显示关卡地图
 
     void Awake()
     {
         if (Instance == null) Instance = this;
         else { Destroy(gameObject); return; }
+
+        // 强制高分辨率渲染
+        // Editor 中最大化 Game View 窗口 + Scale 1x 获得最佳效果
+        Screen.SetResolution(1920, 1080, FullScreenMode.Windowed);
+        Application.targetFrameRate = 60;
+        QualitySettings.antiAliasing = 0; // 像素画不需要抗锯齿
 
         DontDestroyOnLoad(gameObject);
         ResetAnchorStock();
@@ -79,9 +92,20 @@ public class GameManager : MonoBehaviour
     {
         if (IsMenuScene(scene.name))
         {
+            EnsureMenuCamera(); // 保证菜单场景一定有相机，避免 "No cameras rendering"
             isStartScreen = true;
             ClearMenu();
-            ShowStartScreen();
+
+            if (showLevelMapOnMenuLoad)
+            {
+                ShowLevelMap();              // 从关卡返回 → 直接到关卡选择
+                showLevelMapOnMenuLoad = false;
+            }
+            else
+            {
+                ShowStartScreen();           // 首次启动 → 开始界面
+            }
+
             canSkip = false;
             Invoke(nameof(EnableSkip), 0.3f);
             return;
@@ -152,7 +176,7 @@ public class GameManager : MonoBehaviour
 
         CreateBackgroundImage("StartScreen", menuCanvas.transform);
 
-        var hint = CreateUIText("Hint", "按 任 意 键 继 续",
+        var hint = CreateUIText("Hint", "点击任意键开始拉屎（划掉）游戏",
             new Vector2(0, -Screen.height * 0.35f), 28,
             new Color(0.15f, 0.15f, 0.15f, 0.9f), TextAnchor.MiddleCenter, menuCanvas.transform);
         hint.GetComponent<RectTransform>().anchorMin = new Vector2(0.5f, 0.1f);
@@ -182,7 +206,7 @@ public class GameManager : MonoBehaviour
         {
             int level = i + 1;
             Vector2 screenPos = new Vector2(nodePositions[i].x * w, nodePositions[i].y * h);
-            CreateInvisibleHotspot(level, screenPos, menuCanvas.transform);
+            CreateLevelMarker(level, screenPos, menuCanvas.transform);
         }
     }
 
@@ -208,10 +232,74 @@ public class GameManager : MonoBehaviour
 
     public void ReturnToMenu()
     {
+        showLevelMapOnMenuLoad = true; // 从关卡返回时直接显示关卡地图
         if (LevelManager.Instance != null)
             LevelManager.Instance.ReturnToMenu();
         else
             SceneManager.LoadScene("MenuScene");
+    }
+
+    void EnsureMenuCamera()
+    {
+        if (Camera.main != null) return;
+        if (FindAnyObjectByType<Camera>() != null) return;
+
+        var camGO = new GameObject("MenuCamera");
+        camGO.tag = "MainCamera";
+        var cam = camGO.AddComponent<Camera>();
+        cam.clearFlags = CameraClearFlags.SolidColor;
+        cam.backgroundColor = Color.black;
+        cam.orthographic = true;
+        cam.orthographicSize = 10f;
+        cam.nearClipPlane = 0.3f;
+        cam.farClipPlane = 1000f;
+        cam.cullingMask = ~0; // 渲染所有层，避免 "No cameras rendering"
+        cam.depth = -100;
+    }
+
+    /// <summary>加分（由 Poop → Target 命中时调用）</summary>
+    public void AddScore(int points)
+    {
+        currentScore += points;
+        if (currentScore < 0) currentScore = 0;
+    }
+
+    /// <summary>重置本关分数（进关卡 / 重开时调用）</summary>
+    public void ResetScore()
+    {
+        currentScore = 0;
+        maxPossibleScore = 0;
+    }
+
+    /// <summary>
+    /// 星级评定：
+    /// 满分 = 所有目标都被中心命中
+    /// 三星：≥90% 满分
+    /// 二星：60%~90%
+    /// 一星：20%~60%
+    /// 零星：&lt;20%
+    /// </summary>
+    public int GetStarRating()
+    {
+        if (maxPossibleScore <= 0) return 0;
+        float ratio = (float)currentScore / maxPossibleScore;
+        if (ratio >= 0.9f) return 3;
+        if (ratio >= 0.6f) return 2;
+        if (ratio >= 0.2f) return 1;
+        return 0;
+    }
+
+    /// <summary>被敌对摩托车打中 → 关卡重开</summary>
+    public void OnHitHostileVehicle()
+    {
+        Debug.Log("[GameManager] 被敌对摩托车击中！关卡重新开始。");
+        StartCoroutine(RestartLevelDelayed());
+    }
+
+    System.Collections.IEnumerator RestartLevelDelayed()
+    {
+        yield return new WaitForSeconds(2f);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     // ─── 通用 UI 工具 ───
@@ -280,20 +368,70 @@ public class GameManager : MonoBehaviour
         return go;
     }
 
-    void CreateInvisibleHotspot(int level, Vector2 screenPos, Transform parent)
+    void CreateLevelMarker(int level, Vector2 screenPos, Transform parent)
     {
-        var btnGO = new GameObject("Hotspot_L" + level);
+        var btnGO = new GameObject("Marker_L" + level);
         btnGO.transform.SetParent(parent, false);
         var rt = btnGO.AddComponent<RectTransform>();
         rt.anchorMin = rt.anchorMax = Vector2.zero;
         rt.anchoredPosition = screenPos;
-        rt.sizeDelta = new Vector2(120, 120);
+        rt.sizeDelta = new Vector2(100, 100);
 
+        // 蓝色圆底 + 白边，与地图蓝白色调和谐
         var img = btnGO.AddComponent<Image>();
-        img.color = new Color(0, 0, 0, 0);
+        img.sprite = CreateCircleSprite(50, new Color(0.36f, 0.60f, 0.84f, 0.92f), Color.white, 5);
+        img.color = Color.white;
+        img.type = Image.Type.Simple;
+
+        // 关卡编号
+        var labelGO = new GameObject("Label");
+        labelGO.transform.SetParent(btnGO.transform, false);
+        var labelRT = labelGO.AddComponent<RectTransform>();
+        labelRT.anchorMin = labelRT.anchorMax = new Vector2(0.5f, 0.5f);
+        labelRT.anchoredPosition = Vector2.zero;
+        labelRT.sizeDelta = new Vector2(100, 100);
+
+        var label = labelGO.AddComponent<Text>();
+        label.text = level.ToString();
+        label.font = GetSafeFont();
+        label.fontSize = 48;
+        label.color = Color.white;
+        label.alignment = TextAnchor.MiddleCenter;
+        label.horizontalOverflow = HorizontalWrapMode.Overflow;
+        label.verticalOverflow = VerticalWrapMode.Overflow;
 
         var btn = btnGO.AddComponent<Button>();
         int idx = level;
         btn.onClick.AddListener(() => RequestEnterLevel(idx));
+    }
+
+    /// <summary>
+    /// 生成带白边的实心圆 Sprite，用于关卡标记。
+    /// </summary>
+    static Sprite CreateCircleSprite(int radius, Color fillColor, Color borderColor, int borderWidth)
+    {
+        int size = radius * 2;
+        var tex = new Texture2D(size, size);
+        float r = radius;
+        float rInner = r - borderWidth;
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = x - radius;
+                float dy = y - radius;
+                float dist = Mathf.Sqrt(dx * dx + dy * dy);
+
+                if (dist <= rInner)
+                    tex.SetPixel(x, y, fillColor);
+                else if (dist <= r)
+                    tex.SetPixel(x, y, borderColor);
+                else
+                    tex.SetPixel(x, y, Color.clear);
+            }
+        }
+        tex.filterMode = FilterMode.Bilinear;
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
     }
 }
