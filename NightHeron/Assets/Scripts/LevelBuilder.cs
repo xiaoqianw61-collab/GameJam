@@ -1286,17 +1286,30 @@ public class LevelBuilder : MonoBehaviour
         return Resources.Load<Sprite>("people0");
     }
 
-    /// <summary>随机选择路牌贴图（roadsign1 ~ roadsign2）</summary>
+    /// <summary>7 种障碍物样式</summary>
+    static readonly string[] ObstacleSpriteNames = {
+        "birdsign", "fruitshop", "popsign",
+        "shop1", "shop2", "shop3", "shopwithtree"
+    };
+
+    /// <summary>随机选择一个障碍物贴图</summary>
     Sprite GetRandomRoadSignSprite()
     {
         var available = new List<Sprite>();
-        for (int i = 1; i <= 2; i++)
+        foreach (var name in ObstacleSpriteNames)
         {
-            var s = Resources.Load<Sprite>("roadsign" + i);
+            var s = Resources.Load<Sprite>(name);
             if (s != null) available.Add(s);
         }
         if (available.Count == 0) return null;
         return available[Random.Range(0, available.Count)];
+    }
+
+    /// <summary>获取第 index 个障碍物贴图（0~6），用于生成 Prefab</summary>
+    public static Sprite GetObstacleSpriteByIndex(int index)
+    {
+        if (index < 0 || index >= ObstacleSpriteNames.Length) return null;
+        return Resources.Load<Sprite>(ObstacleSpriteNames[index]);
     }
 
     Sprite LoadExternalBirdSprite()

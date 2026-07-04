@@ -16,13 +16,14 @@ public class GeneratePrefabs : EditorWindow
 
         int count = 0;
 
-        // ── 1. 路牌 ×2 ──
-        for (int i = 1; i <= 2; i++)
+        // ── 1. 障碍物 ×7 ──
+        string[] obstacleNames = { "birdsign", "fruitshop", "popsign", "shop1", "shop2", "shop3", "shopwithtree" };
+        for (int i = 0; i < obstacleNames.Length; i++)
         {
-            Sprite roadSign = Resources.Load<Sprite>("roadsign" + i);
+            Sprite roadSign = LevelBuilder.GetObstacleSpriteByIndex(i);
             var obstacle = LevelBuilder.CreateObstacleRuntime(Vector2.zero, null, roadSign);
-            obstacle.name = "Obstacle_RoadSign" + i;
-            SavePrefab(obstacle, prefabDir + "/Obstacle_RoadSign" + i + ".prefab");
+            obstacle.name = "Obstacle_" + obstacleNames[i];
+            SavePrefab(obstacle, prefabDir + "/Obstacle_" + obstacleNames[i] + ".prefab");
             count++;
         }
 
