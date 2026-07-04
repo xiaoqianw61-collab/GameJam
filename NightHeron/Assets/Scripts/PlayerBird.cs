@@ -15,9 +15,14 @@ public class PlayerBird : MonoBehaviour
     public Transform poopPoint;
     public float poopSpeed = 10f;
 
+    [Header("自动拉屎")]
+    public bool autoPoop = true;
+    public float autoPoopInterval = 0.3f;
+
     private List<Vector3> curvePath;
     private int pathIndex;
     private float poopTimer;
+    private float autoPoopTimer;
     private SpriteRenderer sr;
     private bool finished;
 
@@ -42,6 +47,19 @@ public class PlayerBird : MonoBehaviour
         FlyAlongCurve();
 
         poopTimer -= Time.deltaTime;
+
+        // 自动连续拉屎（不受手动冷却限制）
+        if (autoPoop)
+        {
+            autoPoopTimer -= Time.deltaTime;
+            if (autoPoopTimer <= 0)
+            {
+                DropPoop(true);
+                autoPoopTimer = autoPoopInterval;
+            }
+        }
+
+        // 飞到终点就停住
     }
 
     void FlyAlongCurve()
@@ -65,12 +83,14 @@ public class PlayerBird : MonoBehaviour
         }
     }
 
-    public void DropPoop()
+    public void DropPoop(bool bypassCooldown = false)
     {
-        if (finished || poopTimer > 0) return;
+        if (finished) return;
+        if (!bypassCooldown && poopTimer > 0) return;
         poopTimer = poopCooldown;
 
-        Vector3 spawnPos = poopPoint != null ? poopPoint.position : transform.position + Vector3.down * 0.5f;
+        // 粑粑直接出生在鸟的位置（飞行路径上），不下落，留在原地缩小
+        Vector3 spawnPos = transform.position;
 
         if (poopPrefab == null)
         {
@@ -79,26 +99,30 @@ public class PlayerBird : MonoBehaviour
             poop.tag = "Poop";
 
             var sr2 = poop.AddComponent<SpriteRenderer>();
-            sr2.sprite = CreateCircleSprite(8, Color.white);
+            sr2.sprite = CreateCircleSprite(16, Color.white);
             sr2.color = new Color(0.55f, 0.35f, 0.15f);
             sr2.sortingOrder = 8;
 
             var bc = poop.AddComponent<CircleCollider2D>();
-            bc.radius = 0.2f;
+            bc.radius = 0.35f;
             bc.isTrigger = true;
 
             var rb = poop.AddComponent<Rigidbody2D>();
             rb.gravityScale = 0;
-            rb.velocity = Vector2.down * poopSpeed;
+            rb.bodyType = RigidbodyType2D.Kinematic;
 
-            poop.AddComponent<Poop>();
-            Destroy(poop, 5f);
+            var p = poop.AddComponent<Poop>();
+            p.lifetime = 2.5f;
         }
         else
         {
             var poop = Instantiate(poopPrefab, spawnPos, Quaternion.identity);
             var rb = poop.GetComponent<Rigidbody2D>();
-            if (rb != null) rb.velocity = Vector2.down * poopSpeed;
+            if (rb != null)
+            {
+                rb.gravityScale = 0;
+                rb.bodyType = RigidbodyType2D.Kinematic;
+            }
         }
     }
 
