@@ -1,7 +1,9 @@
+using System.IO;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using System.Collections.Generic;
-using System.IO;
 
 /// <summary>
 /// 夜鹭游戏 - 关卡构建器
@@ -24,18 +26,51 @@ public class LevelBuilder : MonoBehaviour
     public int personCount = 8;
     public int carCount = 4;
 
+    /// <summary>移动目标占比（0~1），剩余为静止，最后一两个可能为敌对</summary>
+    [Range(0f, 1f)]
+    public float movingRatio = 0.4f;
+    /// <summary>敌对目标最多数量（0 = 不要红色圆点，障碍物代替）</summary>
+    public int maxHostileCount = 0;
+
     [Header("起点/终点")]
     public Vector3 startPos = new Vector3(-9f, 4f, 0f);
     public Vector3 endPos = new Vector3(19f, 4f, 0f);
 
+    [Header("预制体 (Prefab) - 优先使用")]
+    [Tooltip("路人预制体（需包含 SpriteRenderer、BoxCollider2D、Target）")]
+    public GameObject personPrefab;
+    [Tooltip("障碍物/路牌预制体（需包含 SpriteRenderer、BoxCollider2D、Target，tag=Building）")]
+    public GameObject obstaclePrefab;
+    [Tooltip("摩托车预制体（需包含 SpriteRenderer、CircleCollider2D、Target）")]
+    public GameObject motorcyclePrefab;
+    [Tooltip("玩家夜鹭预制体（需包含 SpriteRenderer、Rigidbody2D、BoxCollider2D、PlayerBird）")]
+    public GameObject playerPrefab;
+    [Tooltip("便便预制体（需包含 SpriteRenderer、CircleCollider2D、Rigidbody2D、Poop）")]
+    public GameObject poopPrefab;
+    [Tooltip("起点/终点标记预制体（需包含 SpriteRenderer）")]
+    public GameObject startMarkerPrefab;
+    public GameObject endMarkerPrefab;
+
     private AnchorEditor editor;
     private PlayerBird playerBird;
     private bool gameStarted = false;
+    private bool gameEnded = false;
+    private Text scoreText;
+    private GameObject scoreGO;
 
     void Awake()
     {
         // 编辑器模式不执行
         if (!Application.isPlaying) return;
+
+        // 如果 Inspector 没挂 Prefab，自动从 Resources/Prefabs 加载默认预制体
+        if (personPrefab == null) personPrefab = Resources.Load<GameObject>("Prefabs/Person");
+        if (obstaclePrefab == null) obstaclePrefab = Resources.Load<GameObject>("Prefabs/Obstacle");
+        if (motorcyclePrefab == null) motorcyclePrefab = Resources.Load<GameObject>("Prefabs/Motorcycle");
+        if (playerPrefab == null) playerPrefab = Resources.Load<GameObject>("Prefabs/Player");
+        if (poopPrefab == null) poopPrefab = Resources.Load<GameObject>("Prefabs/Poop");
+        if (startMarkerPrefab == null) startMarkerPrefab = Resources.Load<GameObject>("Prefabs/StartMarker");
+        if (endMarkerPrefab == null) endMarkerPrefab = Resources.Load<GameObject>("Prefabs/EndMarker");
 
         // 菜单场景（NightHeronScene / MenuScene）：不生成关卡内容，由 GameManager 控制菜单流程
         var sceneName = gameObject.scene.name;
@@ -49,9 +84,157 @@ public class LevelBuilder : MonoBehaviour
         bool alreadyBaked = Camera.main != null && GameObject.Find("Ground") != null;
         if (alreadyBaked)
         {
-            // 必须用 Include 查找，因为 PlayerBird 在烘焙场景中 enabled=false
+            // ─── 清理旧版本烘焙场景中的敌对目标（现在用红色方块障碍物代替） ───
+            var allTargets = FindObjectsByType<Target>(FindObjectsSortMode.None);
+            foreach (var t in allTargets)
+            {
+                if (t.isHostile)
+                    Destroy(t.gameObject);
+            }
+            // ─── 更新障碍物：使用新 roadsign 贴图，否则保持红色方块 ───
+            var obstacles = GameObject.Find("Obstacles");
+            if (obstacles != null)
+            {
+                foreach (Transform child in obstacles.transform)
+                {
+                    var sr2 = child.GetComponent<SpriteRenderer>();
+                    if (sr2 != null)
+                    {
+                        Sprite roadSign = GetRandomRoadSignSprite();
+                        if (roadSign != null)
+                        {
+                            sr2.sprite = roadSign;
+                            sr2.color = Color.white;
+                            float desiredHeight = Random.Range(3f, 4.5f);
+                            float spriteHeightUnits = roadSign.texture.height / roadSign.pixelsPerUnit;
+                            float scale = desiredHeight / spriteHeightUnits;
+                            float aspect = (float)roadSign.texture.width / roadSign.texture.height;
+                            child.localScale = new Vector3(scale * aspect, scale, 1);
+                        }
+                        else
+                        {
+                            sr2.color = new Color(0.9f, 0.15f, 0.15f); // 红色
+                            var scale = child.localScale;
+                            child.localScale = new Vector3(Random.Range(0.3f, 0.8f), scale.y, scale.z); // 细
+                        }
+                    }
+                    // 移除旧 Rigidbody2D，碰撞体设为非 Trigger
+                    var rb2 = child.GetComponent<Rigidbody2D>();
+                    if (rb2 != null) Destroy(rb2);
+                    var col = child.GetComponent<BoxCollider2D>();
+                    if (col != null) col.isTrigger = false;
+                }
+            }
+
+        // 必须用 Include 查找，因为 PlayerBird 在烘焙场景中 enabled=false
+        // ─── 更新旧路人：使用新 people 贴图，没有则用明显可见的方块 ───
+        var poopedSprite = Resources.Load<Sprite>("people0");
+        bool hasCustomSprite = poopedSprite != null;
+        Debug.Log($"[LevelBuilder] people0 加载: {hasCustomSprite} (提示: PNG 需要在 Unity 中设置 Texture Type 为 Sprite)");
+
+        var targetsParent = GameObject.Find("Targets");
+        if (targetsParent != null)
+        {
+            if (hasCustomSprite)
+            {
+                // 让路人高度约 2.25 个世界单位（整体放大 1.5x 提升清晰度）
+                float desiredHeight = 2.25f;
+
+                foreach (Transform child in targetsParent.transform)
+                {
+                    var t = child.GetComponent<Target>();
+                    if (t == null || t.type != Target.TargetType.Person) continue;
+
+                    Sprite normalSprite = GetRandomPersonSprite();
+                    if (normalSprite == null) continue; // 没有可用的普通贴图则跳过
+                    float spriteHeightUnits = normalSprite.texture.height / normalSprite.pixelsPerUnit;
+                    float scale = desiredHeight / spriteHeightUnits;
+
+                    var sr2 = child.GetComponent<SpriteRenderer>();
+                    if (sr2 != null)
+                    {
+                        sr2.sprite = normalSprite;
+                        sr2.color = Color.white;
+                    }
+                    t.normalSprite = normalSprite;
+                    t.poopedSprite = poopedSprite;
+
+                    child.localScale = new Vector3(scale, scale, 1);
+
+                    // 把旧圆形碰撞体换成更适合人体的盒状
+                    var oldCircle = child.GetComponent<CircleCollider2D>();
+                    if (oldCircle != null) Destroy(oldCircle);
+                    var box = child.GetComponent<BoxCollider2D>();
+                    if (box == null)
+                    {
+                        box = child.gameObject.AddComponent<BoxCollider2D>();
+                        box.isTrigger = true;
+                    }
+                    box.size = new Vector2(0.75f / scale, 1.8f / scale);
+                    box.offset = Vector2.zero;
+
+                }
+            }
+            else
+                {
+                    // 没有自定义贴图：用 0.9×2.25 的彩色方块，确保可见
+                    foreach (Transform child in targetsParent.transform)
+                    {
+                        var t = child.GetComponent<Target>();
+                        if (t == null || t.type != Target.TargetType.Person) continue;
+
+                        var sr2 = child.GetComponent<SpriteRenderer>();
+                        if (sr2 != null)
+                        {
+                            sr2.color = t.subType switch
+                            {
+                                Target.TargetSubType.PersonStationary => new Color(0.3f, 0.75f, 0.4f),  // 绿色
+                                Target.TargetSubType.PersonMoving => new Color(0.3f, 0.55f, 0.85f),      // 蓝色
+                                Target.TargetSubType.PersonHostile => new Color(0.9f, 0.2f, 0.2f),       // 红色
+                                _ => new Color(0.5f, 0.5f, 0.5f)
+                            };
+                            sr2.sortingOrder = 3;
+                        }
+                        // 确保尺寸可见
+                        child.localScale = new Vector3(0.9f, 2.25f, 1f);
+                        // 确保碰撞体是 Trigger
+                        var col = child.GetComponent<Collider2D>();
+                        if (col != null) col.isTrigger = true;
+                    }
+                }
+
+                int personCount = 0;
+                foreach (Transform child in targetsParent.transform)
+                {
+                    var t = child.GetComponent<Target>();
+                    if (t != null && t.type == Target.TargetType.Person) personCount++;
+                }
+                Debug.Log($"[LevelBuilder] Targets 下找到 {personCount} 个路人");
+            }
+            else
+            {
+                Debug.LogWarning("[LevelBuilder] 场景中未找到 Targets 父对象！");
+            }
+
+            if (Camera.main != null)
+                Camera.main.allowMSAA = false; // 已烘焙场景也要关闭抗锯齿
+
             var birds = FindObjectsByType<PlayerBird>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             playerBird = birds.Length > 0 ? birds[0] : null;
+            if (playerBird != null)
+            {
+                // 修正鸟的碰撞体为非 Trigger
+                var birdCol = playerBird.GetComponent<BoxCollider2D>();
+                if (birdCol != null) birdCol.isTrigger = false;
+
+                // 重新加载高清无模糊的鸟贴图（覆盖烘焙场景中的旧贴图）
+                var sr = playerBird.GetComponent<SpriteRenderer>();
+                if (sr != null)
+                {
+                    sr.sprite = LoadExternalBirdSprite();
+                    sr.drawMode = SpriteDrawMode.Simple;
+                }
+            }
             var editors = FindObjectsByType<AnchorEditor>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             editor = editors.Length > 0 ? editors[0] : null;
 
@@ -116,6 +299,7 @@ public class LevelBuilder : MonoBehaviour
         cam.orthographicSize = 9f;
         cam.backgroundColor = new Color(0.25f, 0.45f, 0.2f);
         cam.transform.position = new Vector3(5f, 4f, -10f);
+        cam.allowMSAA = false; // 关闭抗锯齿，避免像素画模糊
     }
 
     // ─── 地面（地图底图）───
@@ -158,26 +342,94 @@ public class LevelBuilder : MonoBehaviour
 
         for (int i = 0; i < Mathf.Min(obstacleCount, positions.Length); i++)
         {
-            var go = new GameObject("Obstacle_" + i);
-            go.transform.SetParent(parent);
-            go.transform.position = positions[i];
-            go.tag = "Building";
+            Sprite roadSign = GetRandomRoadSignSprite();
 
-            var srr = go.AddComponent<SpriteRenderer>();
-            srr.sprite = CreateRectSprite(32, 32, Color.white);
-            srr.color = new Color(0.7f, 0.7f, 0.7f);
-            srr.sortingOrder = 1;
+            if (obstaclePrefab != null)
+            {
+                var go = Instantiate(obstaclePrefab, positions[i], Quaternion.identity, parent);
+                go.name = "Obstacle_" + i;
+                go.tag = "Building";
 
-            float w = Random.Range(1.2f, 2.5f);
-            float h = Random.Range(1.2f, 3.5f);
-            go.transform.localScale = new Vector3(w, h, 1);
+                var sr = go.GetComponent<SpriteRenderer>();
+                if (sr != null)
+                {
+                    sr.sprite = roadSign ?? sr.sprite;
+                    sr.color = Color.white;
+                    sr.sortingOrder = 1;
+                }
 
-            var bcc = go.AddComponent<BoxCollider2D>();
-            bcc.size = new Vector2(1f, 1f);
+                var target = go.GetComponent<Target>();
+                if (target == null) target = go.AddComponent<Target>();
+                target.type = Target.TargetType.Building;
 
-            var target = go.AddComponent<Target>();
-            target.type = Target.TargetType.Building;
+                if (roadSign != null)
+                {
+                    float desiredHeight = Random.Range(3f, 4.5f);
+                    float spriteHeightUnits = roadSign.texture.height / roadSign.pixelsPerUnit;
+                    float scale = desiredHeight / spriteHeightUnits;
+                    float aspect = (float)roadSign.texture.width / roadSign.texture.height;
+                    go.transform.localScale = new Vector3(scale * aspect, scale, 1);
+                }
+
+                var box = go.GetComponent<BoxCollider2D>();
+                if (box == null) box = go.AddComponent<BoxCollider2D>();
+                // 碰撞体大小匹配贴图实际尺寸（本地空间）
+                float psW = roadSign != null ? roadSign.texture.width / roadSign.pixelsPerUnit : 1f;
+                float psH = roadSign != null ? roadSign.texture.height / roadSign.pixelsPerUnit : 1f;
+                box.size = new Vector2(psW, psH);
+                box.isTrigger = true; // Trigger，由 PlayerBird 像素级检测
+            }
+            else
+            {
+                var go = CreateObstacleRuntime(positions[i], parent, roadSign);
+                go.name = "Obstacle_" + i;
+            }
         }
+    }
+
+    /// <summary>
+    /// 运行时创建障碍物（无 Prefab 时使用，也用于编辑器生成 Prefab）。
+    /// </summary>
+    public static GameObject CreateObstacleRuntime(Vector2 pos, Transform parent, Sprite roadSign)
+    {
+        var go = new GameObject("Obstacle");
+        if (parent != null) go.transform.SetParent(parent);
+        go.transform.position = pos;
+        go.tag = "Building";
+
+        bool hasSign = roadSign != null;
+
+        var srr = go.AddComponent<SpriteRenderer>();
+        srr.sprite = hasSign ? roadSign : CreateRectSprite(32, 32, Color.white);
+        srr.color = hasSign ? Color.white : new Color(0.9f, 0.15f, 0.15f);
+        srr.sortingOrder = 1;
+
+        if (hasSign)
+        {
+            float desiredHeight = Random.Range(3f, 4.5f);
+            float spriteHeightUnits = roadSign.texture.height / roadSign.pixelsPerUnit;
+            float scale = desiredHeight / spriteHeightUnits;
+            float aspect = (float)roadSign.texture.width / roadSign.texture.height;
+            go.transform.localScale = new Vector3(scale * aspect, scale, 1);
+        }
+        else
+        {
+            float w = Random.Range(0.45f, 1.2f);
+            float h = Random.Range(1.8f, 5.25f);
+            go.transform.localScale = new Vector3(w, h, 1);
+        }
+
+        var bcc = go.AddComponent<BoxCollider2D>();
+        // 碰撞体大小匹配贴图实际尺寸（本地空间，缩放后覆盖整个贴图）
+        float sprW = hasSign ? roadSign.texture.width / roadSign.pixelsPerUnit : 1f;
+        float sprH = hasSign ? roadSign.texture.height / roadSign.pixelsPerUnit : 1f;
+        bcc.size = new Vector2(sprW, sprH);
+        bcc.isTrigger = true; // Trigger，由 PlayerBird 像素级检测
+
+        var target = go.AddComponent<Target>();
+        target.type = Target.TargetType.Building;
+
+        return go;
     }
 
     /// <summary>每关不同的障碍物位置</summary>
@@ -195,24 +447,62 @@ public class LevelBuilder : MonoBehaviour
         }
     }
 
-    // ─── 目标（静止路人/摩托）───
+    // ─── 目标（静止/移动/敌对 路人/摩托）───
     void CreateTargets()
     {
         var parent = new GameObject("Targets").transform;
         var occupied = new List<Vector2>();
 
-        for (int i = 0; i < personCount; i++)
+        // 计算移动和敌对数量
+        int hostilePersonCount = Mathf.Min(maxHostileCount, Mathf.Max(1, personCount / 4));
+        int movingPersonCount = Mathf.RoundToInt((personCount - hostilePersonCount) * movingRatio);
+        int stationaryPersonCount = personCount - movingPersonCount - hostilePersonCount;
+
+        int hostileCarCount = Mathf.Min(maxHostileCount, 1);
+        int movingCarCount = Mathf.RoundToInt((carCount - hostileCarCount) * movingRatio);
+        int stationaryCarCount = carCount - movingCarCount - hostileCarCount;
+
+        // 生成静止路人
+        for (int i = 0; i < stationaryPersonCount; i++)
         {
             var pos = GetRandomPos(occupied, -7f, 22f, 0.5f, 8f);
-            CreatePerson(pos, parent);
+            CreatePerson(pos, parent, Target.TargetSubType.PersonStationary, false, false);
         }
 
-        for (int i = 0; i < carCount; i++)
+        // 生成移动路人
+        for (int i = 0; i < movingPersonCount; i++)
         {
             var pos = GetRandomPos(occupied, -7f, 22f, 0.5f, 8f);
-            CreateMotorcycle(pos, parent);
+            CreatePerson(pos, parent, Target.TargetSubType.PersonMoving, true, false);
         }
 
+        // 生成敌对路人
+        for (int i = 0; i < hostilePersonCount; i++)
+        {
+            var pos = GetRandomPos(occupied, -7f, 22f, 0.5f, 8f);
+            CreatePerson(pos, parent, Target.TargetSubType.PersonHostile, false, true);
+        }
+
+        // 生成静止摩托车
+        for (int i = 0; i < stationaryCarCount; i++)
+        {
+            var pos = GetRandomPos(occupied, -7f, 22f, 0.5f, 8f);
+            CreateMotorcycle(pos, parent, Target.TargetSubType.VehicleStationary, false, false);
+        }
+
+        // 生成移动摩托车
+        for (int i = 0; i < movingCarCount; i++)
+        {
+            var pos = GetRandomPos(occupied, -7f, 22f, 0.5f, 8f);
+            CreateMotorcycle(pos, parent, Target.TargetSubType.VehicleMoving, true, false);
+        }
+
+        // 生成敌对摩托车
+        for (int i = 0; i < hostileCarCount; i++)
+        {
+            var pos = GetRandomPos(occupied, -7f, 22f, 0.5f, 8f);
+            CreateMotorcycle(pos, parent, Target.TargetSubType.VehicleHostile, false, true);
+        }
     }
 
     Vector2 GetRandomPos(List<Vector2> occupied, float xMin, float xMax, float yMin, float yMax)
@@ -230,52 +520,229 @@ public class LevelBuilder : MonoBehaviour
         return new Vector2(Random.Range(xMin, xMax), Random.Range(yMin, yMax));
     }
 
-    void CreatePerson(Vector2 pos, Transform parent)
+    /// <summary>
+    /// 运行时创建路人（无 Prefab 时使用，也用于编辑器生成 Prefab）。
+    /// </summary>
+    public static GameObject CreatePersonRuntime(Vector2 pos, Transform parent,
+        Target.TargetSubType subType, bool isMoving, bool isHostile,
+        Sprite normalSprite, Sprite poopedSprite)
     {
         var go = new GameObject("Person");
-        go.transform.SetParent(parent);
+        if (parent != null) go.transform.SetParent(parent);
         go.transform.position = pos;
         go.tag = "Target";
 
+        bool hasCustomSprite = normalSprite != null && poopedSprite != null;
+
         var sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = CreateCircleSprite(10, Color.white);
-        sr.color = new Color(0.8f, 0.8f, 0.8f); // 浅灰圆
+        sr.sprite = hasCustomSprite ? normalSprite : CreateCircleSprite(10, Color.white);
         sr.sortingOrder = 2;
 
-        var bc = go.AddComponent<CircleCollider2D>();
-        bc.radius = 0.35f;
-        bc.isTrigger = true;
+        // 没有自定义贴图时才用颜色区分类型
+        if (!hasCustomSprite)
+        {
+            sr.color = subType switch
+            {
+                Target.TargetSubType.PersonStationary => new Color(0.8f, 0.8f, 0.8f),
+                Target.TargetSubType.PersonMoving => new Color(0.5f, 0.7f, 0.9f),
+                Target.TargetSubType.PersonHostile => new Color(1f, 0.35f, 0.3f),
+                _ => new Color(0.8f, 0.8f, 0.8f)
+            };
+        }
+        else
+        {
+            sr.color = Color.white;
+        }
 
-        go.AddComponent<Target>().type = Target.TargetType.Person;
+        // 碰撞体
+        if (hasCustomSprite)
+        {
+            // 让路人高度约 2.25 个世界单位
+            float desiredHeight = 2.25f;
+            float spriteHeightUnits = normalSprite.texture.height / normalSprite.pixelsPerUnit;
+            float scale = desiredHeight / spriteHeightUnits;
+            go.transform.localScale = new Vector3(scale, scale, 1);
+
+            var box = go.AddComponent<BoxCollider2D>();
+            box.size = new Vector2(0.75f / scale, 1.8f / scale);
+            box.offset = new Vector2(0, 0);
+            box.isTrigger = true;
+        }
+        else
+        {
+            var bc = go.AddComponent<CircleCollider2D>();
+            bc.radius = 0.525f;
+            bc.isTrigger = true;
+        }
+
+        var target = go.AddComponent<Target>();
+        target.type = Target.TargetType.Person;
+        target.subType = subType;
+        target.normalSprite = normalSprite;
+        target.poopedSprite = poopedSprite;
+
+        ConfigureTargetMovementAndHostile(target, isMoving, isHostile);
+        return go;
     }
 
-    void CreateMotorcycle(Vector2 pos, Transform parent)
+    /// <summary>把移动/敌对参数设置到 Target 上</summary>
+    static void ConfigureTargetMovementAndHostile(Target target, bool isMoving, bool isHostile)
+    {
+        if (isMoving)
+        {
+            target.isMoving = true;
+            target.moveDir = Random.value > 0.5f ? Vector2.right : Vector2.up;
+            target.moveSpeed = Random.Range(1f, 2.5f);
+            target.moveRange = Random.Range(1.5f, 4f);
+        }
+        if (isHostile)
+        {
+            target.isHostile = true;
+            target.attackInterval = Random.Range(1.5f, 3f);
+        }
+    }
+
+    void CreatePerson(Vector2 pos, Transform parent, Target.TargetSubType subType, bool isMoving, bool isHostile)
+    {
+        Sprite normalSprite = GetRandomPersonSprite();
+        Sprite poopedSprite = GetPoopedPersonSprite();
+
+        if (personPrefab != null)
+        {
+            var go = Instantiate(personPrefab, pos, Quaternion.identity, parent);
+            go.name = "Person";
+            go.tag = "Target";
+
+            var sr = go.GetComponent<SpriteRenderer>();
+            if (sr != null)
+            {
+                sr.sprite = normalSprite ?? sr.sprite;
+                sr.color = normalSprite != null ? Color.white : sr.color;
+                sr.sortingOrder = 2;
+            }
+
+            var target = go.GetComponent<Target>();
+            if (target == null) target = go.AddComponent<Target>();
+            target.type = Target.TargetType.Person;
+            target.subType = subType;
+            target.normalSprite = normalSprite;
+            target.poopedSprite = poopedSprite;
+
+            // 有自定义贴图时统一缩放与碰撞体
+            if (normalSprite != null && poopedSprite != null)
+            {
+                float desiredHeight = 2.25f;
+                float spriteHeightUnits = normalSprite.texture.height / normalSprite.pixelsPerUnit;
+                float scale = desiredHeight / spriteHeightUnits;
+                go.transform.localScale = new Vector3(scale, scale, 1);
+
+                var box = go.GetComponent<BoxCollider2D>();
+                if (box == null) box = go.AddComponent<BoxCollider2D>();
+                box.isTrigger = true;
+                box.size = new Vector2(0.75f / scale, 1.8f / scale);
+                box.offset = Vector2.zero;
+
+                var circle = go.GetComponent<CircleCollider2D>();
+                if (circle != null) Destroy(circle);
+            }
+
+            ConfigureTargetMovementAndHostile(target, isMoving, isHostile);
+        }
+        else
+        {
+            CreatePersonRuntime(pos, parent, subType, isMoving, isHostile, normalSprite, poopedSprite);
+        }
+    }
+
+    /// <summary>
+    /// 运行时创建摩托车（无 Prefab 时使用，也用于编辑器生成 Prefab）。
+    /// </summary>
+    public static GameObject CreateMotorcycleRuntime(Vector2 pos, Transform parent,
+        Target.TargetSubType subType, bool isMoving, bool isHostile)
     {
         var go = new GameObject("Motorcycle");
-        go.transform.SetParent(parent);
+        if (parent != null) go.transform.SetParent(parent);
         go.transform.position = pos;
         go.tag = "Target";
 
         var sr = go.AddComponent<SpriteRenderer>();
         sr.sprite = CreateCircleSprite(14, Color.white);
-        sr.color = new Color(0.65f, 0.65f, 0.65f); // 深灰大圆
+        sr.color = subType switch
+        {
+            Target.TargetSubType.VehicleStationary => new Color(0.65f, 0.65f, 0.65f),
+            Target.TargetSubType.VehicleMoving => new Color(0.4f, 0.5f, 0.75f),
+            Target.TargetSubType.VehicleHostile => new Color(0.9f, 0.15f, 0.15f),
+            _ => new Color(0.65f, 0.65f, 0.65f)
+        };
         sr.sortingOrder = 2;
 
         var bc = go.AddComponent<CircleCollider2D>();
         bc.radius = 0.55f;
         bc.isTrigger = true;
 
-        go.AddComponent<Target>().type = Target.TargetType.Car;
+        var target = go.AddComponent<Target>();
+        target.type = Target.TargetType.Car;
+        target.subType = subType;
+
+        ConfigureTargetMovementAndHostile(target, isMoving, isHostile);
+        return go;
+    }
+
+    void CreateMotorcycle(Vector2 pos, Transform parent, Target.TargetSubType subType, bool isMoving, bool isHostile)
+    {
+        if (motorcyclePrefab != null)
+        {
+            var go = Instantiate(motorcyclePrefab, pos, Quaternion.identity, parent);
+            go.name = "Motorcycle";
+            go.tag = "Target";
+
+            var sr = go.GetComponent<SpriteRenderer>();
+            if (sr != null) sr.sortingOrder = 2;
+
+            var target = go.GetComponent<Target>();
+            if (target == null) target = go.AddComponent<Target>();
+            target.type = Target.TargetType.Car;
+            target.subType = subType;
+
+            ConfigureTargetMovementAndHostile(target, isMoving, isHostile);
+        }
+        else
+        {
+            CreateMotorcycleRuntime(pos, parent, subType, isMoving, isHostile);
+        }
     }
 
     // ─── 起点/终点标记（蓝色方块）───
     void CreateStartEndMarkers()
     {
-        CreateMarker("StartMarker", startPos, new Color(0.4f, 0.55f, 0.85f));
-        CreateMarker("EndMarker", endPos, new Color(0.4f, 0.55f, 0.85f));
+        CreateMarker("StartMarker", startPos, new Color(0.4f, 0.55f, 0.85f), startMarkerPrefab);
+        CreateMarker("EndMarker", endPos, new Color(0.4f, 0.55f, 0.85f), endMarkerPrefab);
     }
 
-    void CreateMarker(string name, Vector3 pos, Color color)
+    void CreateMarker(string name, Vector3 pos, Color color, GameObject prefab)
+    {
+        if (prefab != null)
+        {
+            var go = Instantiate(prefab, pos, Quaternion.identity);
+            go.name = name;
+            var sr = go.GetComponent<SpriteRenderer>();
+            if (sr != null)
+            {
+                sr.color = color;
+                sr.sortingOrder = 5;
+            }
+            go.transform.localScale = new Vector3(2.25f, 3.75f, 1f);
+        }
+        else
+        {
+            CreateMarkerRuntime(name, pos, color);
+        }
+    }
+
+    /// <summary>
+    /// 运行时创建起点/终点标记（无 Prefab 时使用，也用于编辑器生成 Prefab）。
+    /// </summary>
+    public static GameObject CreateMarkerRuntime(string name, Vector3 pos, Color color)
     {
         var go = new GameObject(name);
         go.transform.position = pos;
@@ -285,18 +752,74 @@ public class LevelBuilder : MonoBehaviour
         sr.color = color;
         sr.sortingOrder = 5;
 
-        go.transform.localScale = new Vector3(1.5f, 2.5f, 1f);
+        go.transform.localScale = new Vector3(2.25f, 3.75f, 1f);
+        return go;
     }
 
     // ─── 玩家（夜鹭）停在起点，先不动 ───
     void CreatePlayer()
+    {
+        if (playerPrefab != null)
+        {
+            var go = Instantiate(playerPrefab, startPos, Quaternion.identity);
+            go.name = "Player";
+            go.tag = "Player";
+
+            var sr = go.GetComponent<SpriteRenderer>();
+            if (sr != null)
+            {
+                sr.sprite = LoadExternalBirdSprite();
+                sr.sortingOrder = 6;
+            }
+
+            var rb = go.GetComponent<Rigidbody2D>();
+            if (rb != null)
+            {
+                rb.gravityScale = 0;
+                rb.isKinematic = true;
+            }
+
+            var bc = go.GetComponent<BoxCollider2D>();
+            if (bc == null) bc = go.AddComponent<BoxCollider2D>();
+            bc.size = new Vector2(1.2f, 0.75f);
+
+            var playerBird = go.GetComponent<PlayerBird>();
+            if (playerBird == null) playerBird = go.AddComponent<PlayerBird>();
+
+            var poopPoint = go.transform.Find("PoopPoint");
+            if (poopPoint == null)
+            {
+                var poopPointGO = new GameObject("PoopPoint");
+                poopPointGO.transform.SetParent(go.transform);
+                poopPointGO.transform.localPosition = new Vector3(0, -1.65f, 0);
+                poopPoint = poopPointGO.transform;
+            }
+            playerBird.poopPoint = poopPoint;
+            playerBird.poopPrefab = poopPrefab;
+            playerBird.flySpeed = 6f;
+            playerBird.poopSpeed = 12f;
+            playerBird.autoPoop = false; // 编辑阶段不自动拉
+            playerBird.enabled = false; // 设计阶段先不动
+            this.playerBird = playerBird;
+        }
+        else
+        {
+            var go = CreatePlayerRuntime(startPos, poopPrefab, out PlayerBird pb);
+            this.playerBird = pb;
+        }
+    }
+
+    /// <summary>
+    /// 运行时创建玩家（无 Prefab 时使用，也用于编辑器生成 Prefab）。
+    /// </summary>
+    public static GameObject CreatePlayerRuntime(Vector3 startPos, GameObject poopPrefab, out PlayerBird playerBird)
     {
         var go = new GameObject("Player");
         go.transform.position = startPos;
         go.tag = "Player";
 
         var sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = LoadExternalBirdSprite();
+        sr.sprite = null; // Prefab 生成时不需要外部贴图；运行时由调用方覆盖
         sr.sortingOrder = 6;
 
         var rb = go.AddComponent<Rigidbody2D>();
@@ -304,20 +827,22 @@ public class LevelBuilder : MonoBehaviour
         rb.isKinematic = true;
 
         var bc = go.AddComponent<BoxCollider2D>();
-        bc.size = new Vector2(0.8f, 0.5f);
-        bc.isTrigger = true;
+        bc.size = new Vector2(1.2f, 0.75f);
+        // 非 Trigger，由 PlayerBird 手动 Physics2D.OverlapCollider 检测
 
         var poopPoint = new GameObject("PoopPoint");
         poopPoint.transform.SetParent(go.transform);
-        poopPoint.transform.localPosition = new Vector3(0, -1.1f, 0);
+        poopPoint.transform.localPosition = new Vector3(0, -1.65f, 0);
 
-        var playerBird = go.AddComponent<PlayerBird>();
-        playerBird.poopPoint = poopPoint.transform;
-        playerBird.flySpeed = 6f;
-        playerBird.poopSpeed = 12f;
-        playerBird.autoPoop = false; // 编辑阶段不自动拉
-        playerBird.enabled = false; // 设计阶段先不动
-        this.playerBird = playerBird;
+        var pb = go.AddComponent<PlayerBird>();
+        pb.poopPoint = poopPoint.transform;
+        pb.poopPrefab = poopPrefab;
+        pb.flySpeed = 6f;
+        pb.poopSpeed = 12f;
+        pb.autoPoop = false;
+        pb.enabled = false;
+        playerBird = pb;
+        return go;
     }
 
     // ─── 锚点编辑器 ───
@@ -446,6 +971,164 @@ public class LevelBuilder : MonoBehaviour
         btn.onClick.AddListener(StartGame);
     }
 
+    // ─── 分数 UI ───
+
+    void ShowScoreUI()
+    {
+        var canvas = GameObject.Find("Canvas");
+        if (canvas == null) return;
+
+        scoreGO = new GameObject("ScoreText");
+        scoreGO.transform.SetParent(canvas.transform);
+
+        var rt = scoreGO.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(1f, 1f);
+        rt.anchorMax = new Vector2(1f, 1f);
+        rt.anchoredPosition = new Vector2(-20, -30);
+        rt.sizeDelta = new Vector2(200, 40);
+
+        scoreText = scoreGO.AddComponent<Text>();
+        scoreText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")
+                     ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+        scoreText.fontSize = 24;
+        scoreText.alignment = TextAnchor.MiddleRight;
+        scoreText.color = Color.white;
+        scoreText.fontStyle = FontStyle.Bold;
+
+        var shadow = scoreGO.AddComponent<Shadow>();
+        shadow.effectColor = Color.black;
+        shadow.effectDistance = new Vector2(1, -1);
+
+        UpdateScoreDisplay();
+    }
+
+    void Update()
+    {
+        if (!gameStarted || gameEnded) return;
+        UpdateScoreDisplay();
+    }
+
+    void UpdateScoreDisplay()
+    {
+        if (scoreText == null || GameManager.Instance == null) return;
+        int current = GameManager.Instance.currentScore;
+        int max = GameManager.Instance.maxPossibleScore;
+        scoreText.text = $"💩 {current} / {max}";
+    }
+
+    IEnumerator ShowResultDelayed(bool won)
+    {
+        yield return new WaitForSeconds(1.5f);
+        ShowResultScreen(won);
+    }
+
+    /// <summary>显示结算画面</summary>
+    void ShowResultScreen(bool won)
+    {
+        // 停止鸟
+        if (playerBird != null)
+        {
+            playerBird.enabled = false;
+            playerBird.autoPoop = false;
+        }
+
+        var canvas = GameObject.Find("Canvas");
+        if (canvas == null) return;
+
+        var panel = new GameObject("ResultPanel");
+        panel.transform.SetParent(canvas.transform);
+        var panelRt = panel.AddComponent<RectTransform>();
+        panelRt.anchorMin = Vector2.zero;
+        panelRt.anchorMax = Vector2.one;
+        panelRt.offsetMin = Vector2.zero;
+        panelRt.offsetMax = Vector2.zero;
+
+        var panelImg = panel.AddComponent<Image>();
+        panelImg.color = new Color(0, 0, 0, 0.7f);
+
+        // 标题
+        CreateResultText(panel.transform, won ? "通关成功！🎉" : "撞到障碍物！💥",
+            new Vector2(0, 120), 48,
+            won ? new Color(1f, 0.85f, 0.2f) : new Color(1f, 0.3f, 0.3f));
+
+        if (won)
+        {
+            int current = GameManager.Instance != null ? GameManager.Instance.currentScore : 0;
+            int starCount = GameManager.Instance != null ? GameManager.Instance.GetStarRating() : 0;
+
+            CreateResultText(panel.transform, $"得分: {current}",
+                new Vector2(0, 40), 32, Color.white);
+
+            string stars = "";
+            for (int i = 0; i < 3; i++)
+                stars += i < starCount ? "★" : "☆";
+            CreateResultText(panel.transform, stars,
+                new Vector2(0, -20), 48, Color.white);
+        }
+        else
+        {
+            CreateResultText(panel.transform, "夜鹭撞毁，请重新规划路线",
+                new Vector2(0, 40), 24, new Color(0.9f, 0.7f, 0.7f));
+        }
+
+        // 按钮
+        CreateResultButton(panel.transform, "重新开始", new Vector2(-100, -120),
+            () => SceneManager.LoadScene(SceneManager.GetActiveScene().name));
+
+        CreateResultButton(panel.transform, "返回关卡", new Vector2(100, -120),
+            () => GameManager.Instance?.ReturnToMenu());
+    }
+
+    void CreateResultText(Transform parent, string content, Vector2 pos, int fontSize, Color color)
+    {
+        var go = new GameObject("ResultText");
+        go.transform.SetParent(parent);
+        var rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = pos;
+        rt.sizeDelta = new Vector2(600, 80);
+
+        var txt = go.AddComponent<Text>();
+        txt.text = content;
+        txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")
+                ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+        txt.fontSize = fontSize;
+        txt.alignment = TextAnchor.MiddleCenter;
+        txt.color = color;
+    }
+
+    void CreateResultButton(Transform parent, string label, Vector2 pos, UnityEngine.Events.UnityAction callback)
+    {
+        var go = new GameObject("Btn_" + label);
+        go.transform.SetParent(parent);
+        var rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = pos;
+        rt.sizeDelta = new Vector2(150, 50);
+
+        var img = go.AddComponent<Image>();
+        img.color = new Color(0.2f, 0.6f, 0.3f);
+
+        var btn = go.AddComponent<Button>();
+        btn.onClick.AddListener(callback);
+
+        var txtGO = new GameObject("Text");
+        txtGO.transform.SetParent(go.transform);
+        var txtRt = txtGO.AddComponent<RectTransform>();
+        txtRt.anchorMin = Vector2.zero;
+        txtRt.anchorMax = Vector2.one;
+        txtRt.offsetMin = Vector2.zero;
+        txtRt.offsetMax = Vector2.zero;
+
+        var txt = txtGO.AddComponent<Text>();
+        txt.text = label;
+        txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")
+                 ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+        txt.fontSize = 20;
+        txt.alignment = TextAnchor.MiddleCenter;
+        txt.color = Color.white;
+    }
+
     /// <summary>
     /// 开始游戏：锁定锚点编辑，鸟开始飞行并自动拉屎
     /// </summary>
@@ -453,6 +1136,15 @@ public class LevelBuilder : MonoBehaviour
     {
         if (gameStarted) return;
         gameStarted = true;
+
+        // ─── 重置分数 ───
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.ResetScore();
+
+            // 满分固定 100，星级阈值：20→⭐、60→⭐⭐、90→⭐⭐⭐
+            GameManager.Instance.maxPossibleScore = 100;
+        }
 
         // 锁定编辑
         if (editor != null)
@@ -483,6 +1175,9 @@ public class LevelBuilder : MonoBehaviour
             }
         }
 
+        // ─── 显示分数 UI ───
+        ShowScoreUI();
+
         // 找到玩家鸟，设置路径并启动
         if (playerBird == null)
         {
@@ -492,10 +1187,27 @@ public class LevelBuilder : MonoBehaviour
 
         if (playerBird != null && editor != null)
         {
+            // 鸟和障碍物都是 Trigger，碰撞通过 OnTriggerEnter2D 检测
             var path = editor.GetCurvePath();
             playerBird.SetPath(path);
+            playerBird.SetEndPos(endPos);
             playerBird.autoPoop = true;
             playerBird.autoPoopInterval = 0.3f;
+
+            // ─── 通关/失败回调 ───
+            playerBird.OnReachEnd = () =>
+            {
+                if (gameEnded) return;
+                gameEnded = true;
+                StartCoroutine(ShowResultDelayed(true));
+            };
+            playerBird.OnHitObstacle = () =>
+            {
+                if (gameEnded) return;
+                gameEnded = true;
+                ShowResultScreen(false);
+            };
+
             playerBird.enabled = true;
         }
     }
@@ -526,7 +1238,7 @@ public class LevelBuilder : MonoBehaviour
     }
 
     // ─── 精灵工具 ───
-    Sprite CreateRectSprite(int width, int height, Color color)
+    static Sprite CreateRectSprite(int width, int height, Color color)
     {
         var tex = new Texture2D(width, height);
         var pixels = new Color[width * height];
@@ -537,7 +1249,7 @@ public class LevelBuilder : MonoBehaviour
         return Sprite.Create(tex, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f), 32);
     }
 
-    Sprite CreateCircleSprite(int radius, Color color)
+    static Sprite CreateCircleSprite(int radius, Color color)
     {
         int size = radius * 2;
         var tex = new Texture2D(size, size);
@@ -555,6 +1267,51 @@ public class LevelBuilder : MonoBehaviour
         return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 32);
     }
 
+    /// <summary>随机选择路人普通贴图（people1 ~ people6），任意一张缺失时从剩下的随机</summary>
+    Sprite GetRandomPersonSprite()
+    {
+        var available = new List<Sprite>();
+        for (int i = 1; i <= 6; i++)
+        {
+            var s = Resources.Load<Sprite>("people" + i);
+            if (s != null) available.Add(s);
+        }
+        if (available.Count == 0) return null;
+        return available[Random.Range(0, available.Count)];
+    }
+
+    /// <summary>路人被砸中后的统一贴图</summary>
+    Sprite GetPoopedPersonSprite()
+    {
+        return Resources.Load<Sprite>("people0");
+    }
+
+    /// <summary>7 种障碍物样式</summary>
+    static readonly string[] ObstacleSpriteNames = {
+        "birdsign", "fruitshop", "popsign",
+        "shop1", "shop2", "shop3", "shopwithtree"
+    };
+
+    /// <summary>随机选择一个障碍物贴图</summary>
+    Sprite GetRandomRoadSignSprite()
+    {
+        var available = new List<Sprite>();
+        foreach (var name in ObstacleSpriteNames)
+        {
+            var s = Resources.Load<Sprite>(name);
+            if (s != null) available.Add(s);
+        }
+        if (available.Count == 0) return null;
+        return available[Random.Range(0, available.Count)];
+    }
+
+    /// <summary>获取第 index 个障碍物贴图（0~6），用于生成 Prefab</summary>
+    public static Sprite GetObstacleSpriteByIndex(int index)
+    {
+        if (index < 0 || index >= ObstacleSpriteNames.Length) return null;
+        return Resources.Load<Sprite>(ObstacleSpriteNames[index]);
+    }
+
     Sprite LoadExternalBirdSprite()
     {
         string path = Application.dataPath + "/Sprites/NightHeron.png";
@@ -567,14 +1324,14 @@ public class LevelBuilder : MonoBehaviour
         byte[] bytes = File.ReadAllBytes(path);
         var tex = new Texture2D(2, 2);
         tex.LoadImage(bytes);
-        tex.filterMode = FilterMode.Bilinear;
+        tex.filterMode = FilterMode.Point;
         tex.Apply();
 
         var flipped = FlipTextureHorizontally(tex);
 
-        float ppu = flipped.width / 2f;
+        float ppu = flipped.width / 3f; // 鸟从 2 单位 → 3 单位（1.5x 放大）
         return Sprite.Create(flipped, new Rect(0, 0, flipped.width, flipped.height),
-                             new Vector2(0.5f, 0.5f), ppu);
+                             new Vector2(0.5f, 0.5f), ppu, 0, SpriteMeshType.FullRect);
     }
 
     Sprite LoadMapSprite()
@@ -602,6 +1359,8 @@ public class LevelBuilder : MonoBehaviour
         int w = original.width;
         int h = original.height;
         var flipped = new Texture2D(w, h, TextureFormat.RGBA32, false);
+        flipped.filterMode = FilterMode.Point;
+        flipped.wrapMode = TextureWrapMode.Clamp;
         for (int y = 0; y < h; y++)
             for (int x = 0; x < w; x++)
                 flipped.SetPixel(x, y, original.GetPixel(w - 1 - x, y));

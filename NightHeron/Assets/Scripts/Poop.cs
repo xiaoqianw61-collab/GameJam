@@ -45,7 +45,7 @@ public class Poop : MonoBehaviour
     }
 
     /// <summary>
-    /// 碰到 Target（Trigger）→ 得分并消失
+    /// 碰到 Target（Trigger）→ 计算命中距离，传递得分信息
     /// </summary>
     void OnTriggerEnter2D(Collider2D other)
     {
@@ -55,7 +55,14 @@ public class Poop : MonoBehaviour
         {
             if (other.TryGetComponent<Target>(out var target))
             {
-                target.GetPooped();
+                // 传便便位置 + 便便自身半径，让 Target 内部做方向感知判定
+                float poopRadius = GetComponent<CircleCollider2D>()?.radius ?? 0.5f;
+                int score = target.GetPooped(transform.position, poopRadius);
+
+                // 通知 GameManager 加分
+                if (GameManager.Instance != null)
+                    GameManager.Instance.AddScore(score);
+
                 alreadyHit = true;
                 Destroy(gameObject);
             }

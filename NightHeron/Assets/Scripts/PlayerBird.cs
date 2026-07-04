@@ -25,11 +25,29 @@ public class PlayerBird : MonoBehaviour
     private float autoPoopTimer;
     private SpriteRenderer sr;
     private bool finished;
+    private bool hasWon;
+    private Vector3 endPos;
+    private Collider2D birdCollider;
+    private Collider2D[] overlapResults = new Collider2D[8];
+    private ContactFilter2D obstacleFilter;
+
+    /// <summary>到达终点事件</summary>
+    public System.Action OnReachEnd;
+
+    /// <summary>撞到障碍物事件</summary>
+    public System.Action OnHitObstacle;
 
     void Awake()
     {
         sr = GetComponent<SpriteRenderer>();
+        birdCollider = GetComponent<BoxCollider2D>();
+        obstacleFilter = new ContactFilter2D();
+        obstacleFilter.useTriggers = true; // 障碍物是 Trigger，像素级检测
+        obstacleFilter.useLayerMask = false;
     }
+
+    /// <summary>设置终点位置（用于通关检测）</summary>
+    public void SetEndPos(Vector3 end) { endPos = end; }
 
     public void SetPath(List<Vector3> path)
     {
@@ -45,6 +63,10 @@ public class PlayerBird : MonoBehaviour
         if (finished || curvePath == null || curvePath.Count == 0) return;
 
         FlyAlongCurve();
+
+        // 每帧手动检测是否撞到障碍物（比 OnTriggerEnter2D 更可靠）
+        if (!hasWon && !finished)
+            CheckObstacleCollision();
 
         poopTimer -= Time.deltaTime;
 
@@ -67,6 +89,11 @@ public class PlayerBird : MonoBehaviour
         if (pathIndex >= curvePath.Count)
         {
             finished = true;
+            if (!hasWon)
+            {
+                hasWon = true;
+                OnReachEnd?.Invoke();
+            }
             return;
         }
 
@@ -83,6 +110,61 @@ public class PlayerBird : MonoBehaviour
         }
     }
 
+    /// <summary>撞到障碍物 → 失败</summary>
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (hasWon) return;
+
+        if (collision.collider.CompareTag("Building"))
+        {
+            finished = true;
+            autoPoop = false;
+            OnHitObstacle?.Invoke();
+        }
+    }
+
+    /// <summary>每帧手动检测是否与障碍物重叠（不依赖 Unity 碰撞事件）</summary>
+    void CheckObstacleCollision()
+    {
+        int count = Physics2D.OverlapCollider(birdCollider, obstacleFilter, overlapResults);
+        for (int i = 0; i < count; i++)
+        {
+            if (overlapResults[i].CompareTag("Building"))
+            {
+                finished = true;
+                autoPoop = false;
+                OnHitObstacle?.Invoke();
+                return;
+            }
+            if (overlapResults[i].CompareTag("Target") &&
+                overlapResults[i].TryGetComponent<Target>(out var t) && t.isHostile)
+            {
+                finished = true;
+                autoPoop = false;
+                OnHitObstacle?.Invoke();
+                return;
+            }
+        }
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (hasWon || finished) return;
+
+        if (other.CompareTag("Building"))
+        {
+            finished = true;
+            autoPoop = false;
+            OnHitObstacle?.Invoke();
+        }
+        else if (other.CompareTag("Target") && other.TryGetComponent<Target>(out var t) && t.isHostile)
+        {
+            finished = true;
+            autoPoop = false;
+            OnHitObstacle?.Invoke();
+        }
+    }
+
     public void DropPoop(bool bypassCooldown = false)
     {
         if (finished) return;
@@ -94,25 +176,7 @@ public class PlayerBird : MonoBehaviour
 
         if (poopPrefab == null)
         {
-            var poop = new GameObject("Poop");
-            poop.transform.position = spawnPos;
-            poop.tag = "Poop";
-
-            var sr2 = poop.AddComponent<SpriteRenderer>();
-            sr2.sprite = CreateCircleSprite(16, Color.white);
-            sr2.color = new Color(0.55f, 0.35f, 0.15f);
-            sr2.sortingOrder = 8;
-
-            var bc = poop.AddComponent<CircleCollider2D>();
-            bc.radius = 0.35f;
-            bc.isTrigger = true;
-
-            var rb = poop.AddComponent<Rigidbody2D>();
-            rb.gravityScale = 0;
-            rb.bodyType = RigidbodyType2D.Kinematic;
-
-            var p = poop.AddComponent<Poop>();
-            p.lifetime = 2.5f;
+            CreatePoopRuntime(spawnPos);
         }
         else
         {
@@ -126,9 +190,37 @@ public class PlayerBird : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 运行时创建便便（无 Prefab 时使用，也用于编辑器生成 Prefab）。
+    /// </summary>
+    public static GameObject CreatePoopRuntime(Vector3 pos)
+    {
+        var poop = new GameObject("Poop");
+        poop.transform.position = pos;
+        poop.tag = "Poop";
+
+        var sr2 = poop.AddComponent<SpriteRenderer>();
+        sr2.sprite = CreateCircleSprite(16, Color.white);
+        sr2.color = new Color(0.55f, 0.35f, 0.15f);
+        sr2.sortingOrder = 8;
+
+        var bc = poop.AddComponent<CircleCollider2D>();
+        bc.radius = 0.525f;
+        bc.isTrigger = true;
+
+        var rb = poop.AddComponent<Rigidbody2D>();
+        rb.gravityScale = 0;
+        rb.bodyType = RigidbodyType2D.Kinematic;
+
+        var p = poop.AddComponent<Poop>();
+        p.lifetime = 2.5f;
+
+        return poop;
+    }
+
     public bool IsFinished() { return finished; }
 
-    Sprite CreateCircleSprite(int radius, Color color)
+    static Sprite CreateCircleSprite(int radius, Color color)
     {
         int size = radius * 2;
         var tex = new Texture2D(size, size);
