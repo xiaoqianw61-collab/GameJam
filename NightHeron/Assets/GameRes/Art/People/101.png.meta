@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: Xigcs3+qVy7lN+s6BheetZ2WJTaKODKocVQsMBIPmZOnQ0pUGRoRl1w=
+guid: DSwd5imuU3iXT7Vvs2cLCKvlpVuMuQf3WfqwCviacp5AC+Ak1uPXwxA=
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -21,7 +21,7 @@ TextureImporter:
     heightScale: 0.25
     normalMapFilter: 0
     flipGreenChannel: 0
-  isReadable: 1
+  isReadable: 0
   webStreaming: 0
   priorityLevel: 0
   uploadedMode: 2

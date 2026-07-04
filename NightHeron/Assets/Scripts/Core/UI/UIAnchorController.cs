@@ -59,7 +59,7 @@ namespace UI
                 var anchor = Instantiate(anchorPrefab, knot.Position, Quaternion.identity, transform);
                 var anchorItem = anchor.GetComponent<UIAnchorItem>();
                 anchorItem.SetIndex(i, OnSelectCb);
-                anchorItem.SetSelect(false);
+                anchorItem.SetSelect(i == _selectIndex);
                 _anchorItems.Add(anchorItem);
             }
             // 刷新剩余

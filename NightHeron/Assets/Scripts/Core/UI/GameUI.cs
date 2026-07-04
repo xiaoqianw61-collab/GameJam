@@ -57,14 +57,17 @@ namespace UI
             settleObj.SetActive(true);
             settleCompleteObj.SetActive(result);
             settleFailObj.SetActive(!result);
-            var starCount = GameState.Instance.CalculateStar();
-            for (var i = 0; i < stars.Length; i++)
+            if (result)
             {
-                var star = stars[i];
-                star.gameObject.SetActive(i < starCount);
-                if (i < starCount)
+                var starCount = GameState.Instance.CalculateStar();
+                for (var i = 0; i < stars.Length; i++)
                 {
-                    star.transform.DOScale(1, 0.3f).SetEase(Ease.OutBack).From(0).SetDelay(i * 0.2f + 0.2f).SetId(_animBinder);
+                    var star = stars[i];
+                    star.gameObject.SetActive(i < starCount);
+                    if (i < starCount)
+                    {
+                        star.transform.DOScale(1, 0.3f).SetEase(Ease.OutBack).From(0).SetDelay(i * 0.2f + 0.2f).SetId(_animBinder);
+                    }
                 }
             }
         }
