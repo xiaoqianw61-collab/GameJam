@@ -39,8 +39,8 @@ public class LevelBuilder : MonoBehaviour
     [Header("预制体 (Prefab) - 优先使用")]
     [Tooltip("路人预制体（需包含 SpriteRenderer、BoxCollider2D、Target）")]
     public GameObject personPrefab;
-    [Tooltip("障碍物/路牌预制体（需包含 SpriteRenderer、BoxCollider2D、Target，tag=Building）")]
-    public GameObject obstaclePrefab;
+    [Tooltip("7种障碍物预制体（需包含 SpriteRenderer、BoxCollider2D、Target，tag=Building）")]
+    public GameObject[] obstaclePrefabs;
     [Tooltip("摩托车预制体（需包含 SpriteRenderer、CircleCollider2D、Target）")]
     public GameObject motorcyclePrefab;
     [Tooltip("玩家夜鹭预制体（需包含 SpriteRenderer、Rigidbody2D、BoxCollider2D、PlayerBird）")]
@@ -50,6 +50,12 @@ public class LevelBuilder : MonoBehaviour
     [Tooltip("起点/终点标记预制体（需包含 SpriteRenderer）")]
     public GameObject startMarkerPrefab;
     public GameObject endMarkerPrefab;
+
+    /// <summary>7 种障碍物 prefab 名称</summary>
+    static readonly string[] ObstaclePrefabNames = {
+        "birdsign", "fruitshop", "popsign",
+        "shop1", "shop2", "shop3", "shopwithtree"
+    };
 
     private AnchorEditor editor;
     private PlayerBird playerBird;
@@ -63,9 +69,9 @@ public class LevelBuilder : MonoBehaviour
         // 编辑器模式不执行
         if (!Application.isPlaying) return;
 
-        // 如果 Inspector 没挂 Prefab，自动从 Resources/Prefabs 加载默认预制体
+        // 如果 Inspector 没挂 Prefab，自动从 Assets/Prefabs 加载默认预制体
         if (personPrefab == null) personPrefab = Resources.Load<GameObject>("Prefabs/Person");
-        if (obstaclePrefab == null) obstaclePrefab = Resources.Load<GameObject>("Prefabs/Obstacle");
+        if (obstaclePrefabs == null || obstaclePrefabs.Length == 0) obstaclePrefabs = LoadObstaclePrefabs();
         if (motorcyclePrefab == null) motorcyclePrefab = Resources.Load<GameObject>("Prefabs/Motorcycle");
         if (playerPrefab == null) playerPrefab = Resources.Load<GameObject>("Prefabs/Player");
         if (poopPrefab == null) poopPrefab = Resources.Load<GameObject>("Prefabs/Poop");
@@ -91,38 +97,25 @@ public class LevelBuilder : MonoBehaviour
                 if (t.isHostile)
                     Destroy(t.gameObject);
             }
-            // ─── 更新障碍物：使用新 roadsign 贴图，否则保持红色方块 ───
+            // ─── 烘焙场景中的障碍物：确保 tag 和碰撞体正确，不替换已有贴图 ───
             var obstacles = GameObject.Find("Obstacles");
             if (obstacles != null)
             {
                 foreach (Transform child in obstacles.transform)
                 {
-                    var sr2 = child.GetComponent<SpriteRenderer>();
-                    if (sr2 != null)
-                    {
-                        Sprite roadSign = GetRandomRoadSignSprite();
-                        if (roadSign != null)
-                        {
-                            sr2.sprite = roadSign;
-                            sr2.color = Color.white;
-                            float desiredHeight = Random.Range(3f, 4.5f);
-                            float spriteHeightUnits = roadSign.texture.height / roadSign.pixelsPerUnit;
-                            float scale = desiredHeight / spriteHeightUnits;
-                            float aspect = (float)roadSign.texture.width / roadSign.texture.height;
-                            child.localScale = new Vector3(scale * aspect, scale, 1);
-                        }
-                        else
-                        {
-                            sr2.color = new Color(0.9f, 0.15f, 0.15f); // 红色
-                            var scale = child.localScale;
-                            child.localScale = new Vector3(Random.Range(0.3f, 0.8f), scale.y, scale.z); // 细
-                        }
-                    }
-                    // 移除旧 Rigidbody2D，碰撞体设为非 Trigger
+                    child.tag = "Building";
+
+                    var target = child.GetComponent<Target>();
+                    if (target == null) target = child.gameObject.AddComponent<Target>();
+                    target.type = Target.TargetType.Building;
+
+                    var box = child.GetComponent<BoxCollider2D>();
+                    if (box == null) box = child.gameObject.AddComponent<BoxCollider2D>();
+                    box.isTrigger = true; // Trigger，PlayerBird 触发检测
+
+                    // 移除刚体，障碍物保持静态
                     var rb2 = child.GetComponent<Rigidbody2D>();
                     if (rb2 != null) Destroy(rb2);
-                    var col = child.GetComponent<BoxCollider2D>();
-                    if (col != null) col.isTrigger = false;
                 }
             }
 
@@ -340,47 +333,34 @@ public class LevelBuilder : MonoBehaviour
         // 每关不同的障碍物布局
         Vector2[] positions = GetObstaclePositions(levelIndex);
 
+        // 确保已经加载障碍物预制体
+        if (obstaclePrefabs == null || obstaclePrefabs.Length == 0)
+            obstaclePrefabs = LoadObstaclePrefabs();
+
         for (int i = 0; i < Mathf.Min(obstacleCount, positions.Length); i++)
         {
-            Sprite roadSign = GetRandomRoadSignSprite();
+            var prefab = GetRandomObstaclePrefab();
 
-            if (obstaclePrefab != null)
+            if (prefab != null)
             {
-                var go = Instantiate(obstaclePrefab, positions[i], Quaternion.identity, parent);
+                // 直接实例化具体障碍物预制体，不再运行时换贴图
+                var go = Instantiate(prefab, positions[i], Quaternion.identity, parent);
                 go.name = "Obstacle_" + i;
                 go.tag = "Building";
 
-                var sr = go.GetComponent<SpriteRenderer>();
-                if (sr != null)
-                {
-                    sr.sprite = roadSign ?? sr.sprite;
-                    sr.color = Color.white;
-                    sr.sortingOrder = 1;
-                }
-
+                // 确保带 Target 且类型为 Building
                 var target = go.GetComponent<Target>();
                 if (target == null) target = go.AddComponent<Target>();
                 target.type = Target.TargetType.Building;
 
-                if (roadSign != null)
-                {
-                    float desiredHeight = Random.Range(3f, 4.5f);
-                    float spriteHeightUnits = roadSign.texture.height / roadSign.pixelsPerUnit;
-                    float scale = desiredHeight / spriteHeightUnits;
-                    float aspect = (float)roadSign.texture.width / roadSign.texture.height;
-                    go.transform.localScale = new Vector3(scale * aspect, scale, 1);
-                }
-
+                // 确保碰撞体是 Trigger，PlayerBird 用触发检测
                 var box = go.GetComponent<BoxCollider2D>();
-                if (box == null) box = go.AddComponent<BoxCollider2D>();
-                // 碰撞体大小匹配贴图实际尺寸（本地空间）
-                float psW = roadSign != null ? roadSign.texture.width / roadSign.pixelsPerUnit : 1f;
-                float psH = roadSign != null ? roadSign.texture.height / roadSign.pixelsPerUnit : 1f;
-                box.size = new Vector2(psW, psH);
-                box.isTrigger = true; // Trigger，由 PlayerBird 像素级检测
+                if (box != null) box.isTrigger = true;
             }
             else
             {
+                // 兜底：没有 prefab 时仍生成红色方块
+                Sprite roadSign = GetRandomRoadSignSprite();
                 var go = CreateObstacleRuntime(positions[i], parent, roadSign);
                 go.name = "Obstacle_" + i;
             }
@@ -1303,6 +1283,31 @@ public class LevelBuilder : MonoBehaviour
         }
         if (available.Count == 0) return null;
         return available[Random.Range(0, available.Count)];
+    }
+
+    /// <summary>从 Assets/Prefabs 加载 7 种障碍物预制体</summary>
+    GameObject[] LoadObstaclePrefabs()
+    {
+        var list = new List<GameObject>();
+        foreach (var name in ObstaclePrefabNames)
+        {
+#if UNITY_EDITOR
+            string path = $"Assets/Prefabs/Obstacle_{name}.prefab";
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);
+#else
+            var prefab = Resources.Load<GameObject>($"Prefabs/Obstacle_{name}");
+#endif
+            if (prefab != null) list.Add(prefab);
+            else Debug.LogWarning($"[LevelBuilder] 找不到障碍物预制体: {name}");
+        }
+        return list.ToArray();
+    }
+
+    /// <summary>随机选择一个障碍物预制体</summary>
+    GameObject GetRandomObstaclePrefab()
+    {
+        if (obstaclePrefabs == null || obstaclePrefabs.Length == 0) return null;
+        return obstaclePrefabs[Random.Range(0, obstaclePrefabs.Length)];
     }
 
     /// <summary>获取第 index 个障碍物贴图（0~6），用于生成 Prefab</summary>
