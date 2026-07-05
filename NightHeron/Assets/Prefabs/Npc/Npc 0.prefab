@@ -205,17 +205,17 @@ MonoBehaviour:
   effectFactor: 1
   openXOffset: 0
   xOffsetFactor: 0.8
-  openRotate: 0
+  openRotate: 1
   rotateTimeRate: 4
   rotateStart: 0
-  rotateRate: 8
+  rotateRate: 1
   rotateUseSin: 0
   openScale: 1
-  scaleTimeRate: 20
+  scaleTimeRate: 8
   scaleRate: 0.04
   scaleAxisEnable:
     x: 1
     y: 1
     z: 0
-  scaleAxisFactor: {x: 1.5, y: -1.5, z: 1}
+  scaleAxisFactor: {x: 0.5, y: -1, z: 1}
   scaleUseCos: 0
