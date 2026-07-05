@@ -55,12 +55,6 @@ public class SoundManager : MonoBehaviour
             return;
         }
 
-        // 确保场景中有 AudioListener（关卡选择页面没有相机上的 AudioListener）
-        if (FindAnyObjectByType<AudioListener>() == null)
-        {
-            gameObject.AddComponent<AudioListener>();
-        }
-
         // 获取或创建两个 AudioSource
         AudioSource[] sources = GetComponents<AudioSource>();
 

@@ -13,10 +13,18 @@ public class Hero : MonoBehaviour
     [SerializeField, LabelText("运动控制")]
     private SplineAnimate animate;
 
+    private enum EAnimType
+    {
+        Wait,
+        Fly,
+    }
+    
+    private Animator _animator;
     private Attackable _attackable;
     private void Awake()
     {
         Instance = this;
+        _animator = GetComponentInChildren<Animator>();
         _attackable = GetComponent<Attackable>();
         _attackable.OnBeginAttack += OnBeginAttack;
         _attackable.OnEndAttack += OnEndAttack;
@@ -26,6 +34,7 @@ public class Hero : MonoBehaviour
     public void BeginFly()
     {
         animate.Play();
+        _animator.Play(EAnimType.Fly.ToString(), 0, 0);
         _attackable.SetStartAttack(true);
     }
     public void StopFly()
