@@ -4,6 +4,7 @@ using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Video;
 
 namespace UI
 {
@@ -26,27 +27,66 @@ namespace UI
         private GameObject settleFailObj;
         [SerializeField, LabelText("结算星星")]
         private GameObject[] stars;
+        [Title("结算")]
+        [SerializeField, LabelText("游戏全通关")]
+        private GameObject gameAllComplete;
+        [SerializeField, LabelText("游戏全通关录像")]
+        private VideoPlayer gameAllCompleteVideo;
 
         private readonly object _animBinder = new object();
         
         private void Awake()
         {
-            GameState.Instance.OnGameStart += OnGameStart;
-            GameState.Instance.OnGameFinish += OnGameFinish;
-            
             startBtn.SetActive(true);
             var btn = startBtn.GetComponent<Button>();
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(StartPoop);
             startGrayBtn.SetActive(false);
             settleObj.SetActive(false);
+            gameAllComplete.SetActive(false);
             levelText.text = $"第{LevelManager.Instance.CurrentLevelIndex}关";
+            
+            GameState.Instance.OnGameStart += OnGameStart;
+            GameState.Instance.OnGameFinish += OnGameFinish;
+            gameAllCompleteVideo.loopPointReached += OnCompleteAllVideoPlayEnd;
         }
         private void OnDisable()
         {
             DOTween.Kill(_animBinder);
         }
 
+        public void StartPoop()
+        {
+            GameState.Instance.SetGameStart();
+        }
+        
+        public void Restart()
+        {
+            LevelManager.Instance.Restart();
+        }
+        public void NextLevel()
+        {
+            if (LevelManager.Instance.IsCompleteAll())
+            {
+                PlayCompleteAll();
+            }
+            else
+            {
+                LevelManager.Instance.LoadNextLevel();
+            }
+        }
+        public void ReturnMenu()
+        {
+            LevelManager.Instance.ReturnToMenu();
+        }
+
+        private void PlayCompleteAll()
+        {
+            SoundManager.Instance.StopBGM();
+            settleCompleteObj.SetActive(false);
+            gameAllComplete.SetActive(true);
+        }
+        
         private void OnGameStart()
         {
             startBtn.SetActive(false);
@@ -55,8 +95,8 @@ namespace UI
         private void OnGameFinish(bool result)
         {
             settleObj.SetActive(true);
-            settleCompleteObj.SetActive(result);
             settleFailObj.SetActive(!result);
+            settleCompleteObj.SetActive(result);
             if (result)
             {
                 var starCount = GameState.Instance.CalculateStar();
@@ -71,24 +111,14 @@ namespace UI
                     }
                 }
             }
+            else
+            {
+                SoundManager.Instance.StopBGM();
+            }
         }
-
-        public void StartPoop()
+        private void OnCompleteAllVideoPlayEnd(VideoPlayer source)
         {
-            GameState.Instance.SetGameStart();
-        }
-        
-        public void Restart()
-        {
-            LevelManager.Instance.Restart();
-        }
-        public void NextLevel()
-        {
-            LevelManager.Instance.LoadNextLevel();
-        }
-        public void ReturnMenu()
-        {
-            LevelManager.Instance.ReturnToMenu();
+            ReturnMenu();
         }
     }
 }

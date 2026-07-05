@@ -204,11 +204,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 770269396728024291, guid: 6d703805ad0b26845b3ebed72d72fb78, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 14.41
+      value: 14.65
       objectReference: {fileID: 0}
     - target: {fileID: 770269396728024291, guid: 6d703805ad0b26845b3ebed72d72fb78, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.04
+      value: -1.07
       objectReference: {fileID: 0}
     - target: {fileID: 770269396728024291, guid: 6d703805ad0b26845b3ebed72d72fb78, type: 3}
       propertyPath: m_LocalPosition.z
@@ -394,11 +394,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 770269396728024291, guid: f62e6c9d34de9964492f635159bc6c55, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 7.04
+      value: 7.25
       objectReference: {fileID: 0}
     - target: {fileID: 770269396728024291, guid: f62e6c9d34de9964492f635159bc6c55, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.28
+      value: -1.42
       objectReference: {fileID: 0}
     - target: {fileID: 770269396728024291, guid: f62e6c9d34de9964492f635159bc6c55, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1112,7 +1112,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   config:
     anchorCount: 4
-    targetScores: 020000000400000006000000
 --- !u!114 &904739119
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1125,6 +1124,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1b2ec426d9f4117846895f3d0645d67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  safeViewWidth: 17.778
   mainCamera: {fileID: 904739116}
   uICamera: {fileID: 1469942105}
 --- !u!1001 &1022407608
@@ -1619,7 +1619,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 770269396728024291, guid: b1e425276ffe79e4096c31ec96fb1285, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 7.1
+      value: 8.62
       objectReference: {fileID: 0}
     - target: {fileID: 770269396728024291, guid: b1e425276ffe79e4096c31ec96fb1285, type: 3}
       propertyPath: m_LocalPosition.z

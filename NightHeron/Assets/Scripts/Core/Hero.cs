@@ -25,13 +25,11 @@ public class Hero : MonoBehaviour
     private Vector3 _lastPos;
     
     private Animator _animator;
-    private SpriteRenderer _renderer;
     private Attackable _attackable;
     private void Awake()
     {
         Instance = this;
         _animator = GetComponentInChildren<Animator>();
-        _renderer = GetComponentInChildren<SpriteRenderer>();
         _attackable = GetComponent<Attackable>();
         _attackable.OnBeginAttack += OnBeginAttack;
         _attackable.OnEndAttack += OnEndAttack;
@@ -43,7 +41,7 @@ public class Hero : MonoBehaviour
         if (_beginFly)
         {
             var delta = transform.position - _lastPos;
-            _renderer.flipX = delta.x < 0;
+            transform.up = VectorUtil.VectorRotate(delta, 90);
             _lastPos = transform.position;
         }
     }
@@ -54,6 +52,7 @@ public class Hero : MonoBehaviour
         animate.Play();
         _animator.Play(EAnimType.Fly.ToString(), 0, 0);
         _attackable.SetStartAttack(true);
+        SoundManager.Instance?.PlayPoopDrop();
     }
     public void StopFly()
     {
@@ -97,6 +96,7 @@ public class Hero : MonoBehaviour
     {
         if (!_isDead)
         {
+            _animator.Play(EAnimType.Wait.ToString(), 0, 0);
             _isFlyEnd = true;
             _attackable.SetStartAttack(false);
             SoundManager.Instance?.StopSFX();

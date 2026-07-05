@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System;
+using Sirenix.OdinInspector;
 
 /// <summary>
 /// 关卡管理器：管理关卡元信息、解锁/通关状态、场景加载、进度持久化。
@@ -10,8 +11,21 @@ public class LevelManager : MonoBehaviour
 {
     public static LevelManager Instance { get; private set; }
 
+    [LabelText("当前关卡索引")]
     public int CurrentLevelIndex;
-    public int LevelRecord;
+    [LabelText("最高记录")]
+    public int LevelRecord
+    {
+        get => _levelRecord;
+        set
+        {
+            _levelRecord = value;
+            PlayerPrefs.SetInt("LEVEL_RECORD", value);
+        }
+    }
+    private int _levelRecord;
+    [LabelText("最高关卡")]
+    public int MaxLevel = 6;
 
     private void Awake()
     {
@@ -27,12 +41,20 @@ public class LevelManager : MonoBehaviour
     }
 
     /// <summary>
+    /// 是否已经通关全部
+    /// </summary>
+    public bool IsCompleteAll()
+    {
+        return LevelRecord >= MaxLevel;
+    }
+    /// <summary>
     /// 关卡是否已解锁
     /// </summary>
     public bool IsLevelUnlocked(int level)
     {
         return level - 1 <= LevelRecord;
     }
+    
     /// <summary>
     /// 加载关卡
     /// </summary>

@@ -203,7 +203,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   effectFactor: 1
-  openXOffset: 0
+  openXOffset: 1
   xOffsetFactor: 0.8
   openRotate: 1
   rotateTimeRate: 4
