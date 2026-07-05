@@ -265,11 +265,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2462380386630852695, guid: 76073a1e668ee8e49ad16dcb1934df9c, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -6.07
+      value: -6.53
       objectReference: {fileID: 0}
     - target: {fileID: 2462380386630852695, guid: 76073a1e668ee8e49ad16dcb1934df9c, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.21
+      value: 2.87
       objectReference: {fileID: 0}
     - target: {fileID: 2462380386630852695, guid: 76073a1e668ee8e49ad16dcb1934df9c, type: 3}
       propertyPath: m_LocalPosition.z
@@ -450,7 +450,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3427425313118058927, guid: 5cc1bb3a2a0d4404aa0a64aa2e0df2ea, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 4.54
+      value: 5.64
       objectReference: {fileID: 0}
     - target: {fileID: 3427425313118058927, guid: 5cc1bb3a2a0d4404aa0a64aa2e0df2ea, type: 3}
       propertyPath: m_LocalPosition.z
@@ -553,11 +553,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 770269396728024291, guid: f62e6c9d34de9964492f635159bc6c55, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 8.1
+      value: 7.93
       objectReference: {fileID: 0}
     - target: {fileID: 770269396728024291, guid: f62e6c9d34de9964492f635159bc6c55, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.84
+      value: 1.46
       objectReference: {fileID: 0}
     - target: {fileID: 770269396728024291, guid: f62e6c9d34de9964492f635159bc6c55, type: 3}
       propertyPath: m_LocalPosition.z
@@ -862,7 +862,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   config:
     anchorCount: 4
-    targetScores: 020000000400000006000000
 --- !u!114 &904739119
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -875,6 +874,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1b2ec426d9f4117846895f3d0645d67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  safeViewWidth: 17.778
   mainCamera: {fileID: 904739116}
   uICamera: {fileID: 1469942105}
 --- !u!1001 &1098306330
@@ -1063,8 +1063,8 @@ Camera:
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
   m_TargetEye: 3
-  m_HDR: 0
-  m_AllowMSAA: 0
+  m_HDR: 1
+  m_AllowMSAA: 1
   m_enableGDRP: 1
   m_backfaceCulling: 0
   m_AllowDynamicResolution: 0
@@ -1295,11 +1295,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 770269396728024291, guid: 6d703805ad0b26845b3ebed72d72fb78, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -13.56
+      value: -15.92
       objectReference: {fileID: 0}
     - target: {fileID: 770269396728024291, guid: 6d703805ad0b26845b3ebed72d72fb78, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 7.04
+      value: 9.42
       objectReference: {fileID: 0}
     - target: {fileID: 770269396728024291, guid: 6d703805ad0b26845b3ebed72d72fb78, type: 3}
       propertyPath: m_LocalPosition.z

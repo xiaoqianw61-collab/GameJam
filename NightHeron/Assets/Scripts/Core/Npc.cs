@@ -47,11 +47,6 @@ public class Npc : MonoBehaviour
             _posArr[_posArr.Length - 1] = transform.position;
             transform.DOPath(_posArr, moveSpeed, PathType.Linear, PathMode.TopDown2D).SetSpeedBased().SetLoops(-1, LoopType.Restart).SetEase(Ease.Linear).SetId(_animBinder);
             _lastPos = transform.position;
-            wobble.enabled = true;
-        }
-        else
-        {
-            wobble.enabled = false;
         }
     }
     private void OnDisable()
@@ -73,9 +68,9 @@ public class Npc : MonoBehaviour
         if (_isMoving)
         {
             _isMoving = false;
-            wobble.SetEffectFactor(0);
             DOTween.Kill(_animBinder);
         }
+        wobble.SetEffectFactor(0);
     }
 
     /// <summary>

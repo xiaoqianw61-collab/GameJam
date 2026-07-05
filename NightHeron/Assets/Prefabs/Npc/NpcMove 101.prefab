@@ -72,6 +72,26 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 172738954554577377, guid: 37f3c7d29fb2eaf4486a68840550caeb, type: 3}
+      propertyPath: openRotate
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 172738954554577377, guid: 37f3c7d29fb2eaf4486a68840550caeb, type: 3}
+      propertyPath: rotateRate
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 172738954554577377, guid: 37f3c7d29fb2eaf4486a68840550caeb, type: 3}
+      propertyPath: scaleTimeRate
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 172738954554577377, guid: 37f3c7d29fb2eaf4486a68840550caeb, type: 3}
+      propertyPath: scaleAxisFactor.x
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 172738954554577377, guid: 37f3c7d29fb2eaf4486a68840550caeb, type: 3}
+      propertyPath: scaleAxisFactor.y
+      value: -1.5
+      objectReference: {fileID: 0}
     - target: {fileID: 3063053539194659750, guid: 37f3c7d29fb2eaf4486a68840550caeb, type: 3}
       propertyPath: beHitSprite
       value: 
