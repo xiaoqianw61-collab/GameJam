@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
-using TMPro;
 
 /// <summary>
 /// 音频管理器：统一管理背景音乐和音效播放
@@ -40,6 +39,7 @@ public class SoundManager : MonoBehaviour
     private AudioSource bgmSource;   // 背景音乐专用
     private AudioSource sfxSource;   // 音效专用
     private Coroutine resultCheckRoutine; // 通关检测协程
+    private GameState gameState; // 当前关卡 GameState，用于取消订阅
 
     void Awake()
     {
@@ -105,42 +105,61 @@ public class SoundManager : MonoBehaviour
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
-    /// <summary>场景加载后自动切换 BGM</summary>
+    /// <summary>场景加载后自动切换 BGM，并订阅 GameState 结算事件</summary>
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        // 切换场景 → 立即停掉当前所有声音，避免结算音效/通告播到下一个画面
+        StopBGM();
+        if (sfxSource != null) sfxSource.Stop();
+
+        // 取消上一个关卡的 GameState 订阅
+        if (gameState != null)
+        {
+            gameState.OnGameFinish -= OnGameFinish;
+            gameState = null;
+        }
+
         if (scene.name == "MenuScene")
         {
             PlayBGM(menuBGM);
             return;
         }
 
-        // 进入关卡 → 游戏 BGM，并开始检测通关
+        // 进入关卡 → 游戏 BGM，并等待 GameState 初始化后订阅结算事件
         PlayBGM(gameBGM);
         if (resultCheckRoutine != null)
             StopCoroutine(resultCheckRoutine);
-        resultCheckRoutine = StartCoroutine(CheckResultPanel());
+        resultCheckRoutine = StartCoroutine(SubscribeToGameState());
     }
 
-    /// <summary>每 0.5 秒检测是否出现了通关面板</summary>
-    IEnumerator CheckResultPanel()
+    /// <summary>等待 GameState 就绪后订阅 OnGameFinish 事件</summary>
+    IEnumerator SubscribeToGameState()
     {
-        while (true)
+        while (GameState.Instance == null)
+            yield return null;
+
+        gameState = GameState.Instance;
+        gameState.OnGameFinish += OnGameFinish;
+    }
+
+    /// <summary>结算回调：根据结果播放对应音效</summary>
+    void OnGameFinish(bool result)
+    {
+        if (result)
         {
-            yield return new WaitForSeconds(0.5f);
+            PlaySFX(levelClearClip);
+            PlayBGM(successBGM);
+        }
+        else
+        {
+            PlaySFX(gameOverClip);
+        }
 
-            var panel = GameObject.Find("ResultPanel");
-            if (panel == null) continue;
-
-            // 检查面板内是否有 "通关成功" 文字
-            var texts = panel.GetComponentsInChildren<TextMeshProUGUI>();
-            foreach (var t in texts)
-            {
-                if (t.text.Contains("通关成功"))
-                {
-                    PlayBGM(successBGM);
-                    yield break; // 检测到后停止
-                }
-            }
+        // 播放后取消订阅
+        if (gameState != null)
+        {
+            gameState.OnGameFinish -= OnGameFinish;
+            gameState = null;
         }
     }
 
