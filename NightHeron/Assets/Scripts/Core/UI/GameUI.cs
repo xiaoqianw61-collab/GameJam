@@ -69,7 +69,7 @@ namespace UI
         public void NextLevel()
         {
             SoundManager.Instance?.PlayBtnClick();
-            if (LevelManager.Instance.IsCompleteAll())
+            if (LevelManager.Instance.CurrentLevelIndex >= LevelManager.Instance.MaxLevel)
             {
                 PlayCompleteAll();
             }
