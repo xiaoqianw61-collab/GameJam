@@ -143,7 +143,7 @@ public class SoundManager : MonoBehaviour
         }
         else
         {
-            PlaySFX(gameOverClip);
+            // PlaySFX(gameOverClip);
         }
 
         // 播放后取消订阅

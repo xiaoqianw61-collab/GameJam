@@ -77,6 +77,7 @@ public class Attackable : MonoBehaviour
         // 玩家
         if (tag == "Player")
         {
+            var any = false;
             var count = Physics2D.OverlapCircle(pos, hitRadius, _filter2D, _hits);
             for (int i = 0; i < count; i++)
             {
@@ -84,7 +85,13 @@ public class Attackable : MonoBehaviour
                 if (hit.TryGetComponent(out Npc npc))
                 {
                     npc.Hit();
+                    any = true;
                 }
+            }
+            if (any)
+            {
+                // 命中音效
+                SoundManager.Instance?.PlayHit();
             }
         }
         // 目标

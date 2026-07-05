@@ -54,6 +54,7 @@ public class Hero : MonoBehaviour
         animate.Play();
         _animator.Play(EAnimType.Fly.ToString(), 0, 0);
         _attackable.SetStartAttack(true);
+        SoundManager.Instance?.PlayPoopDrop();
     }
     public void StopFly()
     {
