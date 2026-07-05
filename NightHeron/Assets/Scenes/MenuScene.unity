@@ -1829,14 +1829,11 @@ MonoBehaviour:
   anchorPlaceClip: {fileID: 0}
   anchorRemoveClip: {fileID: 0}
   birdFlyClip: {fileID: 0}
-  poopDropClip: {fileID: 0}
-  hitPerfectClip: {fileID: 0}
-  hitGoodClip: {fileID: 0}
-  hitEmmClip: {fileID: 0}
-  hitBuildingClip: {fileID: 0}
+  poopDropClip: {fileID: 8300000, guid: 5a4b3827aca954649a39ca740219bee1, type: 3}
+  hitClip: {fileID: 8300000, guid: 2543e9f8fbf1d4fcb9980ff6c867e5b6, type: 3}
   obstacleHitClip: {fileID: 0}
   levelClearClip: {fileID: 0}
-  gameOverClip: {fileID: 0}
+  gameOverClip: {fileID: 8300000, guid: bb4919c6190d04479b26a417dcfeaa94, type: 3}
 --- !u!82 &1739904418
 AudioSource:
   m_ObjectHideFlags: 0

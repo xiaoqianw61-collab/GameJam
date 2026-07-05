@@ -28,10 +28,7 @@ public class SoundManager : MonoBehaviour
     public AudioClip anchorRemoveClip;          // 撤销锚点
     public AudioClip birdFlyClip;               // 夜鹭飞行（循环）
     public AudioClip poopDropClip;              // 拉便便
-    public AudioClip hitPerfectClip;            // Perfect 命中
-    public AudioClip hitGoodClip;               // Good 命中
-    public AudioClip hitEmmClip;                // Emm 命中
-    public AudioClip hitBuildingClip;           // 命中建筑
+    public AudioClip hitClip;                   // 命中音效
     public AudioClip obstacleHitClip;           // 撞到障碍物
     public AudioClip levelClearClip;            // 通关音效
     public AudioClip gameOverClip;              // 失败音效
@@ -215,10 +212,7 @@ public class SoundManager : MonoBehaviour
     public void PlayAnchorRemove()   => PlaySFX(anchorRemoveClip);
     public void PlayBirdFly()        => PlaySFX(birdFlyClip);
     public void PlayPoopDrop()       => PlaySFX(poopDropClip);
-    public void PlayHitPerfect()     => PlaySFX(hitPerfectClip);
-    public void PlayHitGood()        => PlaySFX(hitGoodClip);
-    public void PlayHitEmm()         => PlaySFX(hitEmmClip);
-    public void PlayHitBuilding()    => PlaySFX(hitBuildingClip);
+    public void PlayHit()            => PlaySFX(hitClip);
     public void PlayObstacleHit()    => PlaySFX(obstacleHitClip);
     public void PlayLevelClear()     => PlaySFX(levelClearClip);
     public void PlayGameOver()       => PlaySFX(gameOverClip);

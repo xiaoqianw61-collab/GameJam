@@ -63,6 +63,9 @@ public class Poop : MonoBehaviour
                 if (GameManager.Instance != null)
                     GameManager.Instance.AddScore(score);
 
+                // 命中音效
+                SoundManager.Instance?.PlayHit();
+
                 alreadyHit = true;
                 Destroy(gameObject);
             }

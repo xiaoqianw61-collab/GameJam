@@ -188,6 +188,8 @@ public class PlayerBird : MonoBehaviour
                 rb.bodyType = RigidbodyType2D.Kinematic;
             }
         }
+
+        SoundManager.Instance?.PlayPoopDrop();
     }
 
     /// <summary>
