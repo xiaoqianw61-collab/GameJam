@@ -1,4 +1,5 @@
 ﻿using System;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 [DefaultExecutionOrder(-960)]
@@ -20,6 +21,9 @@ public class CameraManager : MonoBehaviour
     /// </summary>
     public static Vector2 HalfViewSize => _instance._halfViewSize;
     private Vector2 _halfViewSize;
+
+    [SerializeField, LabelText("安全宽度")]
+    private float safeViewWidth = 17.778f;
     
     [SerializeField]
     private Camera mainCamera;
@@ -32,6 +36,20 @@ public class CameraManager : MonoBehaviour
         _instance = this;
     }
     private void Start()
+    {
+        CalculateScreenInfo();
+        if (safeViewWidth > 1e-5f)
+        {
+            if (_halfViewSize.x < safeViewWidth)
+            {
+                var scale = safeViewWidth / _halfViewSize.x;
+                mainCamera.orthographicSize *= scale;
+                uICamera.orthographicSize = mainCamera.orthographicSize;
+            }
+        }
+    }
+
+    private void CalculateScreenInfo()
     {
         var ratio = (float) Screen.width / Screen.height;
         var halfWidth = mainCamera.orthographicSize * ratio;
@@ -52,4 +70,16 @@ public class CameraManager : MonoBehaviour
         RectTransformUtility.ScreenPointToLocalPointInRectangle(parentRoot, screenPos, UICamera, out var fingerLocalPos);
         return fingerLocalPos;
     }
+
+#if UNITY_EDITOR
+
+    private void OnDrawGizmosSelected()
+    {
+        if (safeViewWidth > 0)
+        {
+            Gizmos.DrawLine(transform.position, transform.position + Vector3.right * safeViewWidth);
+        }
+    }
+
+#endif
 }
