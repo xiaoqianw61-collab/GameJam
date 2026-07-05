@@ -13,7 +13,7 @@ public class LevelManager : MonoBehaviour
 
     [LabelText("当前关卡索引")]
     public int CurrentLevelIndex;
-    [LabelText("最高记录")]
+    [LabelText("最高记录"), ShowInInspector, ReadOnly]
     public int LevelRecord
     {
         get => _levelRecord;
@@ -33,6 +33,7 @@ public class LevelManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            _levelRecord = PlayerPrefs.GetInt("LEVEL_RECORD");
         }
         else
         {
@@ -84,6 +85,7 @@ public class LevelManager : MonoBehaviour
     /// </summary>
     public void LoadNextLevel()
     {
+        if (CurrentLevelIndex >= MaxLevel) return;
         LoadLevelScene(CurrentLevelIndex + 1);
     }
     /// <summary>
