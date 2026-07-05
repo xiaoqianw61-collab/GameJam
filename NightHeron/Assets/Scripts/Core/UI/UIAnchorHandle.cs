@@ -14,7 +14,7 @@ namespace UI
         
         void IBeginDragHandler.OnBeginDrag(PointerEventData eventData)
         {
-            
+            SoundManager.Instance?.PlayAnchorAdjust();
         }
         void IDragHandler.OnDrag(PointerEventData eventData)
         {

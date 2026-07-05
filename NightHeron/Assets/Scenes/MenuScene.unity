@@ -1840,14 +1840,18 @@ MonoBehaviour:
   gameBGM: {fileID: 8300000, guid: b1c4d1c4399dc486abce73aa22be9bcd, type: 3}
   successBGM: {fileID: 8300000, guid: a2a835c82e9b14c44bca96782825e28f, type: 3}
   btnClickClip: {fileID: 0}
-  anchorPlaceClip: {fileID: 0}
+  anchorPlaceClip: {fileID: 8300000, guid: 2c9ec6a29ee8d4f59a5cee8619021389, type: 3}
   anchorRemoveClip: {fileID: 0}
+  anchorAdjustClip: {fileID: 8300000, guid: b2716d54bfdc0434691cfbc3c049538d, type: 3}
   birdFlyClip: {fileID: 0}
   poopDropClip: {fileID: 8300000, guid: 5a4b3827aca954649a39ca740219bee1, type: 3}
   hitClip: {fileID: 8300000, guid: 2543e9f8fbf1d4fcb9980ff6c867e5b6, type: 3}
+  mainMenuStartClip: {fileID: 8300000, guid: 2c588009bd9e84798b964f5ececa3a76, type: 3}
+  levelClickClip: {fileID: 8300000, guid: c13c32a44149b4b51973c2a3f2957285, type: 3}
   obstacleHitClip: {fileID: 0}
   levelClearClip: {fileID: 0}
   gameOverClip: {fileID: 8300000, guid: bb4919c6190d04479b26a417dcfeaa94, type: 3}
+  starShowClip: {fileID: 8300000, guid: 3e0f1f2ed849147549790a54f544126a, type: 3}
 --- !u!82 &1739904418
 AudioSource:
   m_ObjectHideFlags: 0

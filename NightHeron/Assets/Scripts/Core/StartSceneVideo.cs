@@ -34,9 +34,9 @@ public class StartSceneVideo : MonoBehaviour
         rt.offsetMin = Vector2.zero;
         rt.offsetMax = Vector2.zero;
 
-        // RawImage 初始透明，视频准备好后再显示
+        // RawImage 初始黑色遮罩，防止闪现关卡页面；视频第一帧渲染后再显示画面
         var rawImage = rawImageGo.GetComponent<RawImage>();
-        rawImage.color = Color.clear;
+        rawImage.color = Color.black;
 
         // VideoPlayer
         var player = rawImageGo.GetComponent<VideoPlayer>();
@@ -51,12 +51,9 @@ public class StartSceneVideo : MonoBehaviour
         player.audioOutputMode = VideoAudioOutputMode.AudioSource;
         player.SetTargetAudioSource(0, audio);
 
-        // 先 Prepare，准备好后再 Play，避免黑屏
-        player.prepareCompleted += _ =>
-        {
-            rawImage.color = Color.white;
-            player.Play();
-        };
+        // 准备好后播放，第一帧渲染后再显示画面
+        player.prepareCompleted += _ => player.Play();
+        player.started += _ => rawImage.color = Color.white;
 
         // 播完销毁
         player.loopPointReached += _ =>

@@ -66,7 +66,8 @@ namespace UI
                     star.gameObject.SetActive(i < starCount);
                     if (i < starCount)
                     {
-                        star.transform.DOScale(1, 0.3f).SetEase(Ease.OutBack).From(0).SetDelay(i * 0.2f + 0.2f).SetId(_animBinder);
+                        star.transform.DOScale(1, 0.3f).SetEase(Ease.OutBack).From(0).SetDelay(i * 0.2f + 0.2f).SetId(_animBinder)
+                            .OnStart(() => SoundManager.Instance?.PlayStarShow());
                     }
                 }
             }

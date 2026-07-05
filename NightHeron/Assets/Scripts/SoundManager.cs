@@ -26,12 +26,16 @@ public class SoundManager : MonoBehaviour
     public AudioClip btnClickClip;              // 按钮点击
     public AudioClip anchorPlaceClip;           // 放置锚点
     public AudioClip anchorRemoveClip;          // 撤销锚点
+    public AudioClip anchorAdjustClip;          // 调整贝塞尔曲线曲率
     public AudioClip birdFlyClip;               // 夜鹭飞行（循环）
     public AudioClip poopDropClip;              // 拉便便
     public AudioClip hitClip;                   // 命中音效
+    public AudioClip mainMenuStartClip;         // 点击开始（任意键）
+    public AudioClip levelClickClip;            // 点击关卡
     public AudioClip obstacleHitClip;           // 撞到障碍物
     public AudioClip levelClearClip;            // 通关音效
     public AudioClip gameOverClip;              // 失败音效
+    public AudioClip starShowClip;              // 星星显示
 
     private AudioSource bgmSource;   // 背景音乐专用
     private AudioSource sfxSource;   // 音效专用
@@ -210,10 +214,20 @@ public class SoundManager : MonoBehaviour
     public void PlayBtnClick()       => PlaySFX(btnClickClip);
     public void PlayAnchorPlace()    => PlaySFX(anchorPlaceClip);
     public void PlayAnchorRemove()   => PlaySFX(anchorRemoveClip);
+    public void PlayAnchorAdjust()   => PlaySFX(anchorAdjustClip);
     public void PlayBirdFly()        => PlaySFX(birdFlyClip);
     public void PlayPoopDrop()       => PlaySFX(poopDropClip);
     public void PlayHit()            => PlaySFX(hitClip);
+    public void PlayMainMenuStart()  => PlaySFX(mainMenuStartClip);
+    public void PlayLevelClick()     => PlaySFX(levelClickClip);
     public void PlayObstacleHit()    => PlaySFX(obstacleHitClip);
     public void PlayLevelClear()     => PlaySFX(levelClearClip);
     public void PlayGameOver()       => PlaySFX(gameOverClip);
+    public void PlayStarShow()       => PlaySFX(starShowClip);
+
+    /// <summary>停止当前音效</summary>
+    public void StopSFX()
+    {
+        if (sfxSource != null) sfxSource.Stop();
+    }
 }

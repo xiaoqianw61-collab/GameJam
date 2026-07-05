@@ -111,12 +111,14 @@ public class AnchorEditor : MonoBehaviour
                 {
                     dragMode = DragMode.HandleIn;
                     dragAnchorIndex = selectedAnchorIndex;
+                    SoundManager.Instance?.PlayAnchorAdjust();
                     return;
                 }
                 if (selAnchor.handleOut.magnitude > 0.01f && IsNearHandle(worldPos, selectedAnchorIndex, false))
                 {
                     dragMode = DragMode.HandleOut;
                     dragAnchorIndex = selectedAnchorIndex;
+                    SoundManager.Instance?.PlayAnchorAdjust();
                     return;
                 }
             }
@@ -276,6 +278,7 @@ public class AnchorEditor : MonoBehaviour
         UpdatePathLine();
         UpdateInstructionText();
         UpdateAnchorStockUI();
+        SoundManager.Instance?.PlayAnchorPlace();
     }
 
     void RemoveLastAnchor()

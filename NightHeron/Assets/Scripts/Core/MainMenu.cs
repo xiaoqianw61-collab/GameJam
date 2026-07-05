@@ -37,6 +37,7 @@ public class MainMenu : MonoBehaviour
                     _state = EState.SelectLevel;
                     mainMenu.SetActive(false);
                     levelSelect.SetActive(true);
+                    SoundManager.Instance?.PlayMainMenuStart();
                 }
                 break;
             }
@@ -46,6 +47,7 @@ public class MainMenu : MonoBehaviour
     public void SetLevel(int level)
     {
         if (_state != EState.SelectLevel) return;
+        SoundManager.Instance?.PlayLevelClick();
         LevelManager.Instance.LoadLevelScene(level);
     }
 }

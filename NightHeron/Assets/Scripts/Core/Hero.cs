@@ -75,6 +75,7 @@ public class Hero : MonoBehaviour
         if (other.gameObject.layer == LayerUtil.Obstacle)
         {
             _isDead = true;
+            SoundManager.Instance?.StopSFX();
             GameState.Instance.SetGameOver();
         }
     }
@@ -82,6 +83,7 @@ public class Hero : MonoBehaviour
     private void OnBeginAttack()
     {
         _attackNum++;
+        SoundManager.Instance?.PlayPoopDrop();
     }
     private void OnEndAttack()
     {
@@ -97,6 +99,7 @@ public class Hero : MonoBehaviour
         {
             _isFlyEnd = true;
             _attackable.SetStartAttack(false);
+            SoundManager.Instance?.StopSFX();
         }
     }
 }

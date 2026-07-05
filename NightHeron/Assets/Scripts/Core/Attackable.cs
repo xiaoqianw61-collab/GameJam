@@ -84,6 +84,7 @@ public class Attackable : MonoBehaviour
                 if (hit.TryGetComponent(out Npc npc))
                 {
                     npc.Hit();
+                    SoundManager.Instance?.PlayHit();
                 }
             }
         }

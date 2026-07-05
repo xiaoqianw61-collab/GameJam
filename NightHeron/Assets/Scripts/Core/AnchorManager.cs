@@ -88,6 +88,7 @@ public class AnchorManager : MonoBehaviour
             _usedAnchorCount++;
             OnAnchorNumChanged?.Invoke(insertIndex);
             SetDirty();
+            SoundManager.Instance?.PlayAnchorPlace();
         }
 
         if (_isDirty)
