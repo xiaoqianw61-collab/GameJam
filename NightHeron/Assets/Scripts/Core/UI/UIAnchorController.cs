@@ -19,6 +19,7 @@ namespace UI
 
         private int _selectIndex = -1;
 
+        private int _putTick;
         private void Awake()
         {
             _anchorItems = new List<UIAnchorItem>();
@@ -38,14 +39,16 @@ namespace UI
 
         private void Update()
         {
+            if (_putTick == Time.frameCount) return;
             if (Input.GetMouseButtonDown(0) && !UIUtil.IsOverlapUI(Input.mousePosition))
             {
                 OnSelectCb(-1);
             }
         }
-
+        
         private void OnAnchorNumChanged(int newIndex)
         {
+            _putTick = Time.frameCount;
             _selectIndex = newIndex;
             // 重新生成
             for (int i = 0; i < _anchorItems.Count; i++)
@@ -59,7 +62,7 @@ namespace UI
                 var anchor = Instantiate(anchorPrefab, knot.Position, Quaternion.identity, transform);
                 var anchorItem = anchor.GetComponent<UIAnchorItem>();
                 anchorItem.SetIndex(i, OnSelectCb);
-                anchorItem.SetSelect(false);
+                anchorItem.SetSelect(i == _selectIndex);
                 _anchorItems.Add(anchorItem);
             }
             // 刷新剩余

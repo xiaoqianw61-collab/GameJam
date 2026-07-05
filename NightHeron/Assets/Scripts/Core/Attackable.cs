@@ -20,13 +20,15 @@ public class Attackable : MonoBehaviour
     [SerializeField, LabelText("攻击特效")]
     private GameObject attackVfx;
 
-    private bool _startAttack;
+    public event Action OnBeginAttack;
+    public event Action OnEndAttack;
     
+    private bool _startAttack;
     private float _timer;
 
+    private object _animBinder = new object();
     private static Collider2D[] _hits = new Collider2D[30];
 
-    private object _animBinder = new object();
     private ContactFilter2D _filter2D;
     private void Awake()
     {
@@ -66,10 +68,12 @@ public class Attackable : MonoBehaviour
         var pos = transform.position;
         DOVirtual.DelayedCall(hitDelay, () => Hit(pos), false).SetId(_animBinder);
         Instantiate(attackVfx, transform.position, Quaternion.identity);
+        OnBeginAttack?.Invoke();
     }
 
     private void Hit(Vector3 pos)
     {
+        OnEndAttack?.Invoke();
         // 玩家
         if (tag == "Player")
         {

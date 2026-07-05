@@ -18,8 +18,6 @@ public class GameState : MonoBehaviour
     {
         [LabelText("限制锚点数")]
         public int anchorCount;
-        [LabelText("目标分数")]
-        public int[] targetScores = { 2, 4, 6 };
     }
     [LabelText("关卡配置")]
     public LevelConfig config;
@@ -51,11 +49,17 @@ public class GameState : MonoBehaviour
     public event Action OnGameStart;
     public event Action<bool> OnGameFinish;
 
+    private int _totalNpcCount;
     private void Awake()
     {
         Instance = this;
         UIUtil.InitUtil();
         _phase = EGamePhase.Prepare;
+    }
+
+    public void RegisterNpc()
+    {
+        _totalNpcCount++;
     }
 
     /// <summary>
@@ -105,19 +109,20 @@ public class GameState : MonoBehaviour
         OnGameFinish?.Invoke(true);
     }
 
+    private static float[] s_starLine = { 0.2f, 0.6f, 1f };
     /// <summary>
     /// 计算分数
     /// </summary>
     public int CalculateStar()
     {
-        for (var i = 0; i < config.targetScores.Length; i++)
+        for (var i = 0; i < s_starLine.Length; i++)
         {
-            var score = config.targetScores[i];
+            var score = (int) (s_starLine[i] * _totalNpcCount);
             if (_score < score)
             {
                 return i;
             }
         }
-        return config.targetScores.Length;
+        return s_starLine.Length;
     }
 }

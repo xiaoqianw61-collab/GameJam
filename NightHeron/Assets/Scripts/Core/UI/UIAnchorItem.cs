@@ -70,8 +70,9 @@ namespace UI
             var anchorInfo = AnchorManager.Instance.GetAnchorInfo(curIndex, out var angle);
             var originPos = CameraManager.WorldPosToUILocalPos(_parent, Vector3.zero);
             var deltaPos = CameraManager.WorldPosToUILocalPos(_parent, Vector3.zero + new Vector3(anchorInfo.TangentIn.z, 0, 0));
-            handleLink.sizeDelta = new Vector2(3, Mathf.Abs(deltaPos.x - originPos.x) * 2);
-            handleLink.localEulerAngles = new Vector3(0, 0, angle);
+            // 长度x2，-90度偏移
+            handleLink.sizeDelta = new Vector2(3, Mathf.Abs(deltaPos.x - originPos.x) * 2 * 1.5f);
+            handleLink.localEulerAngles = new Vector3(0, 0, angle - 90);
         }
 
         void IPointerClickHandler.OnPointerClick(PointerEventData eventData)

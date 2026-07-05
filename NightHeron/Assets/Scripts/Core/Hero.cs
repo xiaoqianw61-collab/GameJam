@@ -13,17 +13,28 @@ public class Hero : MonoBehaviour
     [SerializeField, LabelText("运动控制")]
     private SplineAnimate animate;
 
+    private enum EAnimType
+    {
+        Wait,
+        Fly,
+    }
+    
+    private Animator _animator;
     private Attackable _attackable;
     private void Awake()
     {
         Instance = this;
+        _animator = GetComponentInChildren<Animator>();
         _attackable = GetComponent<Attackable>();
+        _attackable.OnBeginAttack += OnBeginAttack;
+        _attackable.OnEndAttack += OnEndAttack;
         animate.Completed += OnFlyCompleted;
     }
 
     public void BeginFly()
     {
         animate.Play();
+        _animator.Play(EAnimType.Fly.ToString(), 0, 0);
         _attackable.SetStartAttack(true);
     }
     public void StopFly()
@@ -37,7 +48,7 @@ public class Hero : MonoBehaviour
     /// </summary>
     public void Hit(int reduceScore)
     {
-        GameState.Instance.AddScore(reduceScore);
+        GameState.Instance.ReduceScore(reduceScore);
     }
     
     private void OnTriggerEnter2D(Collider2D other)
@@ -48,12 +59,27 @@ public class Hero : MonoBehaviour
             GameState.Instance.SetGameOver();
         }
     }
+
+    private bool _isFlyEnd;
+    private int _attackNum;
+    private void OnBeginAttack()
+    {
+        _attackNum++;
+    }
+    private void OnEndAttack()
+    {
+        _attackNum--;
+        if (_isFlyEnd && _attackNum == 0)
+        {
+            GameState.Instance.SetGamePass();
+        }
+    }
     private void OnFlyCompleted()
     {
         if (!_isDead)
         {
+            _isFlyEnd = true;
             _attackable.SetStartAttack(false);
-            GameState.Instance.SetGamePass();
         }
     }
 }

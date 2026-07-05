@@ -45,6 +45,7 @@ GameObject:
   - component: {fileID: 3063053539194659750}
   - component: {fileID: 6254284872735833548}
   - component: {fileID: 830049966112656567}
+  - component: {fileID: 172738954554577377}
   m_Layer: 30
   m_HasEditorInfo: 1
   m_Name: Npc 0
@@ -113,15 +114,15 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: bd5964536bb843899a26587f8366dea9, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ab36e74ee42b46e98f0c98006e1335d0, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 3.4133334, y: 3.4133334}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 0
+  m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
 --- !u!114 &3063053539194659750
@@ -139,7 +140,8 @@ MonoBehaviour:
   score: 1
   beHitSprite: {fileID: 21300000, guid: 457192306a8dee240b307659293badfa, type: 3}
   pointWayRoot: {fileID: 4259236321103935660}
-  moveTime: 1
+  moveSpeed: 3
+  wobble: {fileID: 172738954554577377}
 --- !u!58 &6254284872735833548
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -175,7 +177,7 @@ CircleCollider2D:
   m_CompositeOperation: 0
   m_CompositeLayer: 0
   m_Offset: {x: 0, y: 0}
-  m_Radius: 0.90000004
+  m_Radius: 1.6
 --- !u!210 &830049966112656567
 SortingGroup:
   m_ObjectHideFlags: 0
@@ -188,3 +190,32 @@ SortingGroup:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_SortAtRoot: 0
+--- !u!114 &172738954554577377
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5634997668823385839}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d15e8828c3a48b9a7b62493efc91566, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  effectFactor: 1
+  openXOffset: 0
+  xOffsetFactor: 0.8
+  openRotate: 0
+  rotateTimeRate: 4
+  rotateStart: 0
+  rotateRate: 8
+  rotateUseSin: 0
+  openScale: 1
+  scaleTimeRate: 20
+  scaleRate: 0.04
+  scaleAxisEnable:
+    x: 1
+    y: 1
+    z: 0
+  scaleAxisFactor: {x: 1.5, y: -1.5, z: 1}
+  scaleUseCos: 0

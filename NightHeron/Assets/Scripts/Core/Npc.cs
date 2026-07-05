@@ -13,9 +13,16 @@ public class Npc : MonoBehaviour
     [Title("位移")]
     [SerializeField, LabelText("路线节点")]
     private Transform pointWayRoot;
-    [SerializeField, LabelText("移动时间")]
-    private float moveTime;
+    [SerializeField, LabelText("移动速度")]
+    private float moveSpeed;
+    [SerializeField, LabelText("摇晃")]
+    private FeelWobble wobble;
 
+    private readonly object _animBinder = new object();
+
+    private Vector3 _lastPos;
+    
+    private bool _isMoving;
     private Vector3[] _posArr;
     private Collider2D _collider;
     private SpriteRenderer _renderer;
@@ -23,11 +30,13 @@ public class Npc : MonoBehaviour
     {
         _collider = GetComponent<Collider2D>();
         _renderer = GetComponent<SpriteRenderer>();
+        GameState.Instance.RegisterNpc();
     }
     private void Start()
     {
         if (pointWayRoot != null && pointWayRoot.childCount > 0)
         {
+            _isMoving = true;
             _posArr = new Vector3[pointWayRoot.childCount + 2];
             _posArr[0] = transform.position;
             for (var i = 0; i < pointWayRoot.childCount; i++)
@@ -36,7 +45,36 @@ public class Npc : MonoBehaviour
                 _posArr[i + 1] = point;
             }
             _posArr[_posArr.Length - 1] = transform.position;
-            transform.DOPath(_posArr, moveTime, PathType.Linear, PathMode.TopDown2D).SetLoops(-1, LoopType.Restart).SetEase(Ease.Linear);
+            transform.DOPath(_posArr, moveSpeed, PathType.Linear, PathMode.TopDown2D).SetSpeedBased().SetLoops(-1, LoopType.Restart).SetEase(Ease.Linear).SetId(_animBinder);
+            _lastPos = transform.position;
+            wobble.enabled = true;
+        }
+        else
+        {
+            wobble.enabled = false;
+        }
+    }
+    private void OnDisable()
+    {
+        StopAnim();
+    }
+    private void Update()
+    {
+        if (_isMoving)
+        {
+            var delta = transform.position - _lastPos;
+            _renderer.flipX = delta.x < 0;
+            _lastPos = transform.position;
+        }
+    }
+
+    private void StopAnim()
+    {
+        if (_isMoving)
+        {
+            _isMoving = false;
+            wobble.SetEffectFactor(0);
+            DOTween.Kill(_animBinder);
         }
     }
 
@@ -46,6 +84,7 @@ public class Npc : MonoBehaviour
     public void Hit()
     {
         _collider.enabled = false;
+        StopAnim();
         GameState.Instance.AddScore(score);
         _renderer.sprite = beHitSprite;
     }
