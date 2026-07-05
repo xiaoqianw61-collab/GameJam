@@ -53,7 +53,6 @@ public class GameState : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-        UIUtil.InitUtil();
         _phase = EGamePhase.Prepare;
     }
 

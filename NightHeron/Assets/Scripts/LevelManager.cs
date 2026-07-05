@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using System;
 using Sirenix.OdinInspector;
+using UnityEngine.UI;
 
 /// <summary>
 /// 关卡管理器：管理关卡元信息、解锁/通关状态、场景加载、进度持久化。
@@ -20,12 +21,14 @@ public class LevelManager : MonoBehaviour
         set
         {
             _levelRecord = value;
-            PlayerPrefs.SetInt("LEVEL_RECORD", value);
+            PlayerPrefs.SetInt(LEVEL_RECORD_KEY, value);
         }
     }
     private int _levelRecord;
     [LabelText("最高关卡")]
     public int MaxLevel = 6;
+
+    public const string LEVEL_RECORD_KEY = nameof(LEVEL_RECORD_KEY);
 
     private void Awake()
     {
@@ -33,11 +36,21 @@ public class LevelManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            _levelRecord = PlayerPrefs.GetInt("LEVEL_RECORD");
+            UIUtil.InitUtil();
+            _levelRecord = PlayerPrefs.GetInt(LEVEL_RECORD_KEY);
         }
         else
         {
             Destroy(this);
+        }
+    }
+
+    private void Update()
+    {
+        // 辣鸡代码
+        if (Input.GetMouseButtonDown(0) && UIUtil.TryGetOverlapUI(Input.mousePosition, out var ui) && ui.TryGetComponent(out Button _)) 
+        {
+            SoundManager.Instance.PlayBtnClick();
         }
     }
 
