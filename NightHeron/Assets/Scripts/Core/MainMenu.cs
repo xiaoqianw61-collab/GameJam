@@ -9,6 +9,8 @@ public class MainMenu : MonoBehaviour
     private GameObject mainMenu;
     [SerializeField, LabelText("关卡选择")]
     private GameObject levelSelect;
+    [SerializeField, LabelText("关卡锁")]
+    private GameObject[] levelLocks;
     
     private enum EState
     {
@@ -37,6 +39,10 @@ public class MainMenu : MonoBehaviour
                     _state = EState.SelectLevel;
                     mainMenu.SetActive(false);
                     levelSelect.SetActive(true);
+                    for (var i = 0; i < levelLocks.Length; i++)
+                    {
+                        levelLocks[i].SetActive(i > LevelManager.Instance.LevelRecord);
+                    }
                     SoundManager.Instance?.PlayMainMenuStart();
                 }
                 break;
@@ -46,8 +52,7 @@ public class MainMenu : MonoBehaviour
 
     public void SetLevel(int level)
     {
-        if (_state != EState.SelectLevel) return;
-        SoundManager.Instance?.PlayLevelClick();
+        if (_state != EState.SelectLevel || level - 1 > LevelManager.Instance.LevelRecord) return;
         LevelManager.Instance.LoadLevelScene(level);
     }
 }

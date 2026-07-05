@@ -57,18 +57,15 @@ namespace UI
 
         public void StartPoop()
         {
-            SoundManager.Instance?.PlayBtnClick();
             GameState.Instance.SetGameStart();
         }
         
         public void Restart()
         {
-            SoundManager.Instance?.PlayBtnClick();
             LevelManager.Instance.Restart();
         }
         public void NextLevel()
         {
-            SoundManager.Instance?.PlayBtnClick();
             if (LevelManager.Instance.IsCompleteAll())
             {
                 PlayCompleteAll();
@@ -80,7 +77,6 @@ namespace UI
         }
         public void ReturnMenu()
         {
-            SoundManager.Instance?.PlayBtnClick();
             LevelManager.Instance.ReturnToMenu();
         }
 
