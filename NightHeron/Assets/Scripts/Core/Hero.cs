@@ -96,6 +96,7 @@ public class Hero : MonoBehaviour
     {
         if (!_isDead)
         {
+            _animator.Play(EAnimType.Wait.ToString(), 0, 0);
             _isFlyEnd = true;
             _attackable.SetStartAttack(false);
         }
