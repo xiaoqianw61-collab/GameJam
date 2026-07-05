@@ -82,7 +82,6 @@ public class Hero : MonoBehaviour
     private void OnBeginAttack()
     {
         _attackNum++;
-        SoundManager.Instance?.PlayPoopDrop();
     }
     private void OnEndAttack()
     {
