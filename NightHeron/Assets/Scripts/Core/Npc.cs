@@ -30,6 +30,7 @@ public class Npc : MonoBehaviour
     {
         _collider = GetComponent<Collider2D>();
         _renderer = GetComponent<SpriteRenderer>();
+        GameState.Instance.RegisterNpc();
     }
     private void Start()
     {
