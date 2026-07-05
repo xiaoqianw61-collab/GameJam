@@ -136,7 +136,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7ea0a3181854330ad41dcd573646ec5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  score: 1
+  score: 5
   beHitSprite: {fileID: 21300000, guid: 457192306a8dee240b307659293badfa, type: 3}
   pointWayRoot: {fileID: 4259236321103935660}
   moveTime: 1
