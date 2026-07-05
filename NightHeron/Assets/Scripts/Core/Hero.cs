@@ -18,6 +18,8 @@ public class Hero : MonoBehaviour
     {
         Instance = this;
         _attackable = GetComponent<Attackable>();
+        _attackable.OnBeginAttack += OnBeginAttack;
+        _attackable.OnEndAttack += OnEndAttack;
         animate.Completed += OnFlyCompleted;
     }
 
@@ -37,7 +39,7 @@ public class Hero : MonoBehaviour
     /// </summary>
     public void Hit(int reduceScore)
     {
-        GameState.Instance.AddScore(reduceScore);
+        GameState.Instance.ReduceScore(reduceScore);
     }
     
     private void OnTriggerEnter2D(Collider2D other)
@@ -48,12 +50,27 @@ public class Hero : MonoBehaviour
             GameState.Instance.SetGameOver();
         }
     }
+
+    private bool _isFlyEnd;
+    private int _attackNum;
+    private void OnBeginAttack()
+    {
+        _attackNum++;
+    }
+    private void OnEndAttack()
+    {
+        _attackNum--;
+        if (_isFlyEnd && _attackNum == 0)
+        {
+            GameState.Instance.SetGamePass();
+        }
+    }
     private void OnFlyCompleted()
     {
         if (!_isDead)
         {
+            _isFlyEnd = true;
             _attackable.SetStartAttack(false);
-            GameState.Instance.SetGamePass();
         }
     }
 }
