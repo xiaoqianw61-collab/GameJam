@@ -41,6 +41,8 @@ public class AnchorManager : MonoBehaviour
     public event Action<int> OnAnchorNumChanged;
     public event Action OnAnchorInfoChanged;
 
+    private static readonly int s_mainTex = Shader.PropertyToID("_MainTex");
+    
     private NativeArray<Vector3> _posArr;
     private void Awake()
     {
@@ -73,6 +75,7 @@ public class AnchorManager : MonoBehaviour
     }
     private void Update()
     {
+        lineRenderer.sharedMaterial.SetTextureOffset(s_mainTex, new Vector2(-Time.time, 0));
         if (CanAddAnchor() && Input.GetMouseButtonDown(0) && !UIUtil.IsOverlapUI(Input.mousePosition))
         {
             var template = _allAnchor[_allAnchor.Count - 2];
