@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Video;
@@ -10,6 +11,8 @@ public class StartSceneVideo : MonoBehaviour
     [SerializeField, Tooltip("开场视频文件")]
     private VideoClip videoClip;
 
+    private GameObject _canvasGo;
+
     private void OnEnable()
     {
         if (videoClip == null)
@@ -19,22 +22,22 @@ public class StartSceneVideo : MonoBehaviour
         }
 
         // 创建全屏 Canvas
-        var canvasGo = new GameObject("StartVideoCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-        var canvas = canvasGo.GetComponent<Canvas>();
+        _canvasGo = new GameObject("StartVideoCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        var canvas = _canvasGo.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 9999;
-        DontDestroyOnLoad(canvasGo);
+        DontDestroyOnLoad(_canvasGo);
 
         // RawImage 作为视频显示层
         var rawImageGo = new GameObject("VideoImage", typeof(RawImage), typeof(VideoPlayer), typeof(AudioSource));
-        rawImageGo.transform.SetParent(canvasGo.transform);
+        rawImageGo.transform.SetParent(_canvasGo.transform);
         var rt = rawImageGo.GetComponent<RectTransform>();
         rt.anchorMin = Vector2.zero;
         rt.anchorMax = Vector2.one;
         rt.offsetMin = Vector2.zero;
         rt.offsetMax = Vector2.zero;
 
-        // RawImage 初始黑色遮罩，防止闪现关卡页面；视频第一帧渲染后再显示画面
+        // RawImage 初始黑色遮罩
         var rawImage = rawImageGo.GetComponent<RawImage>();
         rawImage.color = Color.black;
 
@@ -51,17 +54,30 @@ public class StartSceneVideo : MonoBehaviour
         player.audioOutputMode = VideoAudioOutputMode.AudioSource;
         player.SetTargetAudioSource(0, audio);
 
-        // 准备好后播放，第一帧渲染后再显示画面
-        player.prepareCompleted += _ => player.Play();
-        player.started += _ => rawImage.color = Color.white;
-
         // 播完销毁
         player.loopPointReached += _ =>
         {
-            Destroy(canvasGo);
+            Destroy(_canvasGo);
             enabled = false;
         };
 
+        // 准备好后播放，延迟一帧等第一帧渲染完成再显示
+        player.prepareCompleted += _ =>
+        {
+            player.Play();
+            StartCoroutine(ShowAfterFirstFrame(rawImage));
+        };
         player.Prepare();
+    }
+
+    private void OnDisable()
+    {
+        if (_canvasGo != null) Destroy(_canvasGo);
+    }
+
+    private IEnumerator ShowAfterFirstFrame(RawImage rawImage)
+    {
+        yield return null; // 等第一帧渲染到 RenderTexture
+        rawImage.color = Color.white;
     }
 }

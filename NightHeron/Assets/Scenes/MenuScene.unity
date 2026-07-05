@@ -635,7 +635,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   CurrentLevelIndex: 0
-  LevelRecord: 0
+  MaxLevel: 6
 --- !u!4 &720562232
 Transform:
   m_ObjectHideFlags: 0
@@ -1839,7 +1839,7 @@ MonoBehaviour:
   menuBGM: {fileID: 8300000, guid: 7535967fc75a8464087a0fdcd109229a, type: 3}
   gameBGM: {fileID: 8300000, guid: b1c4d1c4399dc486abce73aa22be9bcd, type: 3}
   successBGM: {fileID: 8300000, guid: a2a835c82e9b14c44bca96782825e28f, type: 3}
-  btnClickClip: {fileID: 0}
+  btnClickClip: {fileID: 8300000, guid: dc718635402d043a5b3efe162cd62fd8, type: 3}
   anchorPlaceClip: {fileID: 8300000, guid: 2c9ec6a29ee8d4f59a5cee8619021389, type: 3}
   anchorRemoveClip: {fileID: 0}
   anchorAdjustClip: {fileID: 8300000, guid: b2716d54bfdc0434691cfbc3c049538d, type: 3}
