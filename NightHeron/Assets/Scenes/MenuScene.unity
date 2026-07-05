@@ -1524,6 +1524,7 @@ GameObject:
   - component: {fileID: 1696585128}
   - component: {fileID: 1696585127}
   - component: {fileID: 1696585126}
+  - component: {fileID: 1696585129}
   m_Layer: 5
   m_HasEditorInfo: 1
   m_Name: LevelSelect
@@ -1595,6 +1596,19 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1696585129
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1696585125}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a77206667a17453ab50c670b233d6ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  videoClip: {fileID: 32900000, guid: b163af6ecff954477a3d94162963b0e1, type: 3}
 --- !u!1 &1739904414
 GameObject:
   m_ObjectHideFlags: 0
