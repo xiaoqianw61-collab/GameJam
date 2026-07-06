@@ -48,7 +48,8 @@ public class LevelManager : MonoBehaviour
     private void Update()
     {
         // 辣鸡代码
-        if (Input.GetMouseButtonDown(0) && UIUtil.TryGetOverlapUI(Input.mousePosition, out var ui) && ui.TryGetComponent(out Button _)) 
+        if (Input.GetMouseButtonDown(0) && 
+            UIUtil.TryGetOverlapUI(Input.mousePosition, out var ui) && ui.TryGetComponent(out Button _)) 
         {
             SoundManager.Instance.PlayBtnClick();
         }
