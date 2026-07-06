@@ -52,7 +52,7 @@ public class MainMenu : MonoBehaviour
 
     public void SetLevel(int level)
     {
-        if (_state != EState.SelectLevel || level - 1 > LevelManager.Instance.LevelRecord) return;
+        if (level - 1 > LevelManager.Instance.LevelRecord) return;
         LevelManager.Instance.LoadLevelScene(level);
     }
 }
