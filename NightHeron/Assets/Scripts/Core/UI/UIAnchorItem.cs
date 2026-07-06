@@ -6,7 +6,7 @@ using UnityEngine.EventSystems;
 
 namespace UI
 {
-    public class UIAnchorItem : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
+    public class UIAnchorItem : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
     {
         [SerializeField, LabelText("曲柄连接")]
         private RectTransform handleLink;
@@ -23,7 +23,7 @@ namespace UI
         /// </summary>
         public int curIndex;
 
-        private Action<int> _selectCb;
+        private Action<int, int> _selectCb;
         
         private bool _isSelected;
         private bool _isDragging;
@@ -49,7 +49,7 @@ namespace UI
             RefreshHandle();
         }
 
-        public void SetIndex(int index, Action<int> selectCb)
+        public void SetIndex(int index, Action<int, int> selectCb)
         {
             curIndex = index;
             _selectCb = selectCb;
@@ -75,9 +75,9 @@ namespace UI
             handleLink.localEulerAngles = new Vector3(0, 0, angle - 90);
         }
 
-        void IPointerClickHandler.OnPointerClick(PointerEventData eventData)
+        void IPointerDownHandler.OnPointerDown(PointerEventData eventData)
         {
-            _selectCb?.Invoke(curIndex);
+            _selectCb?.Invoke(curIndex, (int) eventData.button);
         }
 
         void IBeginDragHandler.OnBeginDrag(PointerEventData eventData)

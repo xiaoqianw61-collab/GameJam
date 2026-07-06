@@ -38,7 +38,8 @@ public class AnchorManager : MonoBehaviour
     private int _usedAnchorCount;
     
     private bool _isDirty;
-    public event Action<int> OnAnchorNumChanged;
+    public event Action<int> OnAddNewAnchor;
+    public event Action<int> OnDeleteAnchor;
     public event Action OnAnchorInfoChanged;
 
     private static readonly int s_mainTex = Shader.PropertyToID("_MainTex");
@@ -81,20 +82,30 @@ public class AnchorManager : MonoBehaviour
         _lineMat.SetTextureOffset(s_mainTex, new Vector2(-Time.time, 0));
         if (CanAddAnchor() && Input.GetMouseButtonDown(0) && !UIUtil.IsOverlapUI(Input.mousePosition))
         {
-            var template = _allAnchor[_allAnchor.Count - 2];
-            template.Position = CameraManager.MouseWorldPos;
-            var angle = 0;
-            template.Rotation = CalculateAngle(angle);
-            template.TangentIn = new float3(0, 0, -1);
-            template.TangentOut = new float3(0, 0, 1);
-            var insertIndex = _allAnchor.Count - 1;
-            _allAnchor.Insert(insertIndex, template);
-            _allAnchorAngle.Insert(insertIndex, angle);
-            splineContainer.Spline.Knots = _allAnchor;
-            _usedAnchorCount++;
-            OnAnchorNumChanged?.Invoke(insertIndex);
-            SetDirty();
-            SoundManager.Instance?.PlayAnchorPlace();
+            var anchorCount = _allAnchor.Count;
+            var mouseWorldPos = CameraManager.MouseWorldPos;
+            int insertIndex = anchorCount - 1;
+            if (anchorCount > 2)
+            {
+                // 找到离得最近的两个点中的一个
+                var minIndex = -1;
+                var minDisSq = 99999f;
+                for (int i = 0; i < anchorCount - 1; i++)
+                {
+                    var first = _allAnchor[i].Position;
+                    var second = _allAnchor[i + 1].Position;
+                    var center = (first + second) / 2;
+                    var disSq = ((Vector3) center - mouseWorldPos).sqrMagnitude;
+                    if (minIndex == -1 || disSq < minDisSq)
+                    {
+                        minIndex = i;
+                        minDisSq = disSq;
+                    }
+                }
+                // Debug.Log($"离我最近的是: {minIndex}");
+                insertIndex = minIndex + 1;
+            }
+            AddAnchor(insertIndex, mouseWorldPos);
         }
 
         if (_isDirty)
@@ -119,11 +130,56 @@ public class AnchorManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 增加锚点
+    /// </summary>
+    public void AddAnchor(int index, Vector3 anchorPos)
+    {
+        var anchorCount = _allAnchor.Count;
+        // 新锚点
+        var template = _allAnchor[anchorCount - 2];
+        template.Position = anchorPos;
+        // 计算角度
+        var angle = 0;
+        template.Rotation = CalculateAngle(angle);
+        template.TangentIn = new float3(0, 0, -1);
+        template.TangentOut = new float3(0, 0, 1);
+        // 设置生效
+        _allAnchor.Insert(index, template);
+        _allAnchorAngle.Insert(index, angle);
+        splineContainer.Spline.Knots = _allAnchor;
+        _usedAnchorCount++;
+        
+        OnAddNewAnchor?.Invoke(index);
+        SetDirty();
+        SoundManager.Instance?.PlayAnchorPlace();
+    }
+    /// <summary>
+    /// 移除锚点
+    /// </summary>
+    public void DeleteAnchor(int index)
+    {
+        _allAnchor.RemoveAt(index);
+        _allAnchorAngle.RemoveAt(index);
+        splineContainer.Spline.Knots = _allAnchor;
+        _usedAnchorCount--;
+        
+        OnDeleteAnchor?.Invoke(index);
+        SetDirty();
+        SoundManager.Instance?.PlayAnchorPlace();
+    }
+    
+    /// <summary>
+    /// 获取锚点信息
+    /// </summary>
     public BezierKnot GetAnchorInfo(int index, out float angle)
     {
         angle = -_allAnchorAngle[index];
         return _allAnchor[index];
     }
+    /// <summary>
+    /// 设置锚点位置
+    /// </summary>
     public void SetAnchorPos(int index, Vector3 pos)
     {
         var knot = _allAnchor[index];
@@ -133,6 +189,9 @@ public class AnchorManager : MonoBehaviour
         OnAnchorInfoChanged?.Invoke();
         SetDirty();
     }
+    /// <summary>
+    /// 设置锚点手柄点
+    /// </summary>
     public void SetAnchorTangent(int index, Vector3 pos, bool isHandle0)
     {
         var knot = _allAnchor[index];

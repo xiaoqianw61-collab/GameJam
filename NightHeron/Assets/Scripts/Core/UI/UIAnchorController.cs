@@ -30,11 +30,8 @@ namespace UI
                 _remainAnchors.Add(obj);
             }
             
-            AnchorManager.Instance.OnAnchorNumChanged += OnAnchorNumChanged;
-        }
-        private void OnDestroy()
-        {
-            AnchorManager.Instance.OnAnchorNumChanged -= OnAnchorNumChanged;
+            AnchorManager.Instance.OnAddNewAnchor += OnAddNewAnchor;
+            AnchorManager.Instance.OnDeleteAnchor += OnDeleteAnchor;
         }
 
         private void Update()
@@ -42,11 +39,11 @@ namespace UI
             if (_putTick == Time.frameCount) return;
             if (Input.GetMouseButtonDown(0) && !UIUtil.IsOverlapUI(Input.mousePosition))
             {
-                OnSelectCb(-1);
+                OnSelectCb(-1, 0);
             }
         }
         
-        private void OnAnchorNumChanged(int newIndex)
+        private void OnAddNewAnchor(int newIndex)
         {
             _putTick = Time.frameCount;
             _selectIndex = newIndex;
@@ -72,9 +69,39 @@ namespace UI
                 _remainAnchors[i].SetActive(i < remainingAnchorCount);
             }
         }
-
-        private void OnSelectCb(int index)
+        private void OnDeleteAnchor(int index)
         {
+            _selectIndex = -1;
+            // 重新生成
+            for (int i = 0; i < _anchorItems.Count; i++)
+            {
+                Destroy(_anchorItems[i].gameObject);
+            }
+            _anchorItems.Clear();
+            for (var i = 1; i < AnchorManager.Instance.AllAnchor.Count - 1; i++)
+            {
+                var knot = AnchorManager.Instance.AllAnchor[i];
+                var anchor = Instantiate(anchorPrefab, knot.Position, Quaternion.identity, transform);
+                var anchorItem = anchor.GetComponent<UIAnchorItem>();
+                anchorItem.SetIndex(i, OnSelectCb);
+                anchorItem.SetSelect(false);
+                _anchorItems.Add(anchorItem);
+            }
+            // 刷新剩余
+            var remainingAnchorCount = AnchorManager.Instance.RemainingAnchorCount;
+            for (var i = 0; i < _remainAnchors.Count; i++)
+            {
+                _remainAnchors[i].SetActive(i < remainingAnchorCount);
+            }
+        }
+
+        private void OnSelectCb(int index, int btnIndex)
+        {
+            if (btnIndex == 1)
+            {
+                AnchorManager.Instance.DeleteAnchor(index);
+                return;
+            }
             if (index == _selectIndex)
             {
                 _selectIndex = -1;
