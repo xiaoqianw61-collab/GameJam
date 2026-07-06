@@ -42,7 +42,8 @@ public class AnchorManager : MonoBehaviour
     public event Action OnAnchorInfoChanged;
 
     private static readonly int s_mainTex = Shader.PropertyToID("_MainTex");
-    
+
+    private Material _lineMat;
     private NativeArray<Vector3> _posArr;
     private void Awake()
     {
@@ -67,6 +68,8 @@ public class AnchorManager : MonoBehaviour
         splineContainer.Spline.SetTangentMode(0, TangentMode.AutoSmooth);
         splineContainer.Spline.SetTangentMode(1, TangentMode.AutoSmooth);
         
+        lineRenderer.sharedMaterial = _lineMat = lineRenderer.material;
+        
         _isDirty = true;
     }
     private void OnDestroy()
@@ -75,7 +78,7 @@ public class AnchorManager : MonoBehaviour
     }
     private void Update()
     {
-        lineRenderer.sharedMaterial.SetTextureOffset(s_mainTex, new Vector2(-Time.time, 0));
+        _lineMat.SetTextureOffset(s_mainTex, new Vector2(-Time.time, 0));
         if (CanAddAnchor() && Input.GetMouseButtonDown(0) && !UIUtil.IsOverlapUI(Input.mousePosition))
         {
             var template = _allAnchor[_allAnchor.Count - 2];

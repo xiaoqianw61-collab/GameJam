@@ -106,6 +106,9 @@ public class LevelManager : MonoBehaviour
     /// </summary>
     public void LevelPass()
     {
-        LevelRecord++;
+        if (CurrentLevelIndex == LevelRecord + 1)
+        {
+            LevelRecord++;
+        }
     }
 }
